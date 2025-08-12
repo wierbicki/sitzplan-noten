@@ -627,8 +627,7 @@ class SeatingPlan {
             card.addEventListener('touchstart', (e) => {
                 if (e.target.closest('.student-card-actions')) return;
 
-                // Prevent mouse events from firing
-                e.preventDefault();
+                // Don't prevent default to ensure touch events work properly
                 touchStarted = true;
                 mouseStarted = false;
                 this.isDragging = false; // Reset drag state
@@ -653,8 +652,8 @@ class SeatingPlan {
                     Math.pow(currentPos.y - touchStartPosition.y, 2)
                 );
 
-                // If moved more than 5 pixels, consider it a drag
-                if (distance > 5) {
+                // If moved more than 10 pixels, consider it a drag (increased threshold)
+                if (distance > 10) {
                     if (!this.isDragging) {
                         this.isDragging = true;
                         this.handleCounterRelease(student.id);
@@ -666,22 +665,26 @@ class SeatingPlan {
                 if (e.target.closest('.student-card-actions')) return;
                 if (!touchStarted) return;
 
-                e.preventDefault();
                 touchStarted = false;
 
-                // Only handle counter release if not dragging
-                if (!this.isDragging) {
-                    this.handleCounterRelease(student.id);
-                }
-
-                touchStartPosition = null;
+                // Add a small delay to ensure touch end is processed properly
+                setTimeout(() => {
+                    // Only handle counter release if not dragging
+                    if (!this.isDragging) {
+                        this.handleCounterRelease(student.id);
+                    }
+                    touchStartPosition = null;
+                }, 50);
             });
 
             card.addEventListener('touchcancel', (e) => {
                 if (!touchStarted) return;
                 touchStarted = false;
-                this.handleCounterRelease(student.id);
-                touchStartPosition = null;
+                
+                setTimeout(() => {
+                    this.handleCounterRelease(student.id);
+                    touchStartPosition = null;
+                }, 50);
             });
 
             // Mouse events for desktop (only if no touch was started)
@@ -1074,15 +1077,17 @@ class SeatingPlan {
     }
 
     handleCounterPress(studentId) {
-        // Prevent multiple simultaneous presses for the same student
-        if (this.longPressTimer || this.counterStartTime) {
-            return;
+        // Clear any existing timer first
+        if (this.longPressTimer) {
+            clearTimeout(this.longPressTimer);
+            this.longPressTimer = null;
         }
 
+        // Reset state
         this.isLongPress = false;
         this.counterStartTime = Date.now();
 
-        // Set timer for long press
+        // Set timer for long press with longer delay for touch devices
         this.longPressTimer = setTimeout(() => {
             // Check again if we're still not dragging
             if (!this.isDragging && this.counterStartTime) {
@@ -1098,6 +1103,8 @@ class SeatingPlan {
             return;
         }
 
+        const pressDuration = Date.now() - this.counterStartTime;
+
         // Clear the timer
         if (this.longPressTimer) {
             clearTimeout(this.longPressTimer);
@@ -1106,13 +1113,13 @@ class SeatingPlan {
 
         // If it wasn't a long press and we're not dragging, it's a short click - increment
         if (!this.isLongPress && !this.isDragging) {
-            const pressDuration = Date.now() - this.counterStartTime;
-            // Only count as click if it was short and not a drag operation
+            // More lenient timing for touch devices - count as click if shorter than long press delay
             if (pressDuration < this.longPressDelay) {
                 this.incrementCounter(studentId);
             }
         }
 
+        // Reset state
         this.isLongPress = false;
         this.counterStartTime = null;
     }
