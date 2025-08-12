@@ -105,6 +105,10 @@ class SeatingPlan {
             this.toggleSidebar();
         });
 
+        document.getElementById('toggleHeader').addEventListener('click', () => {
+            this.toggleHeader();
+        });
+
         document.getElementById('toggleGrades').addEventListener('click', () => {
             this.toggleGradeDisplay();
         });
@@ -819,6 +823,43 @@ class SeatingPlan {
         } else {
             sidebar.style.display = 'none';
             toggleBtn.textContent = 'Schülerliste einblenden';
+        }
+    }
+
+    toggleHeader() {
+        const header = document.querySelector('.header');
+        const toggleBtn = document.getElementById('toggleHeader');
+        
+        if (header.style.display === 'none') {
+            header.style.display = 'flex';
+            toggleBtn.textContent = 'Header ausblenden';
+            this.removeFloatingHeaderButton();
+        } else {
+            header.style.display = 'none';
+            toggleBtn.textContent = 'Header einblenden';
+            this.createFloatingHeaderButton();
+        }
+    }
+
+    createFloatingHeaderButton() {
+        // Remove any existing floating button
+        this.removeFloatingHeaderButton();
+        
+        const floatingBtn = document.createElement('button');
+        floatingBtn.className = 'floating-header-toggle';
+        floatingBtn.id = 'floatingHeaderToggle';
+        floatingBtn.textContent = 'Header einblenden';
+        floatingBtn.addEventListener('click', () => {
+            this.toggleHeader();
+        });
+        
+        document.body.appendChild(floatingBtn);
+    }
+
+    removeFloatingHeaderButton() {
+        const existingBtn = document.getElementById('floatingHeaderToggle');
+        if (existingBtn) {
+            existingBtn.remove();
         }
     }
 

@@ -434,6 +434,29 @@ body {
     justify-content: flex-end;
 }
 
+.floating-header-toggle {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 1000;
+    padding: 10px 20px;
+    border-radius: 20px;
+    border: none;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    background: rgba(0, 122, 255, 0.9);
+    color: white;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 4px 16px rgba(0, 122, 255, 0.3);
+}
+
+.floating-header-toggle:hover {
+    background: rgba(0, 86, 204, 0.9);
+    transform: translateY(-1px);
+}
+
 @media (max-width: 768px) {
     .main-content {
         flex-direction: column;
