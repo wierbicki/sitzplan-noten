@@ -336,6 +336,7 @@ body {
     border: 1px solid rgba(255, 255, 255, 0.5);
     min-width: 100px;
     position: relative;
+    overflow: visible;
 }
 
 .student-card-actions {
@@ -345,6 +346,7 @@ body {
     display: none;
     gap: 4px;
     z-index: 20;
+    pointer-events: auto;
 }
 
 .student-card:hover .student-card-actions {
@@ -352,18 +354,21 @@ body {
 }
 
 .btn-edit {
-    width: 24px;
-    height: 24px;
+    width: 28px;
+    height: 28px;
     border-radius: 50%;
     border: none;
     background: #007aff;
     color: white;
-    font-size: 10px;
+    font-size: 11px;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
     transition: all 0.2s ease;
+    pointer-events: auto;
+    min-width: 28px;
+    min-height: 28px;
 }
 
 .btn-edit:hover {
