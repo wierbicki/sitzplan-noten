@@ -312,8 +312,8 @@ body {
 }
 
 .seat.occupied {
-    background: rgba(52, 199, 89, 0.1);
-    border: 2px solid rgba(52, 199, 89, 0.3);
+    background: transparent;
+    border: 2px solid transparent;
 }
 
 .seat.drag-over {
