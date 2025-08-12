@@ -12,6 +12,7 @@ class SeatingPlan {
         this.longPressTimer = null;
         this.isLongPress = false;
         this.longPressDelay = 500; // 500ms for long press
+        this.counterPressTimeout = null; // Timeout for distinguishing between drag and counter press
         this.showGrades = false; // Toggle for grade display
         this.startingGrade = 4.0; // Default starting grade
         this.init();
@@ -558,46 +559,75 @@ class SeatingPlan {
         card.appendChild(name);
         card.appendChild(counter);
 
-        // Add drag events
+        // Add drag events for all students (both in pool and seated)
         card.addEventListener('dragstart', this.handleDragStart.bind(this));
         card.addEventListener('dragend', this.handleDragEnd.bind(this));
 
+        const isSeated = this.seats.some(seat => seat.student && seat.student.id === student.id);
+        
         // Add counter events (only for seated students)
-        if (this.seats.some(seat => seat.student && seat.student.id === student.id)) {
-            // Mouse events
+        if (isSeated) {
+            // Mouse events for counter functionality
             card.addEventListener('mousedown', (e) => {
                 if (e.target.closest('.student-card-actions')) return; // Don't trigger on edit button
-                e.preventDefault();
-                this.handleCounterPress(student.id);
+                
+                // Only start counter press if not dragging
+                this.counterPressTimeout = setTimeout(() => {
+                    if (!card.classList.contains('dragging')) {
+                        e.preventDefault();
+                        this.handleCounterPress(student.id);
+                    }
+                }, 100);
             });
 
             card.addEventListener('mouseup', (e) => {
                 if (e.target.closest('.student-card-actions')) return;
-                e.preventDefault();
-                this.handleCounterRelease(student.id);
+                
+                // Clear timeout and handle counter release if we were in counter mode
+                if (this.counterPressTimeout) {
+                    clearTimeout(this.counterPressTimeout);
+                    this.counterPressTimeout = null;
+                }
+                
+                if (!card.classList.contains('dragging') && this.longPressTimer) {
+                    e.preventDefault();
+                    this.handleCounterRelease(student.id);
+                }
             });
-
-            
 
             // Touch events for mobile
             card.addEventListener('touchstart', (e) => {
                 if (e.target.closest('.student-card-actions')) return;
-                e.preventDefault();
-                this.handleCounterPress(student.id);
+                
+                this.counterPressTimeout = setTimeout(() => {
+                    if (!card.classList.contains('dragging')) {
+                        e.preventDefault();
+                        this.handleCounterPress(student.id);
+                    }
+                }, 100);
             });
 
             card.addEventListener('touchend', (e) => {
                 if (e.target.closest('.student-card-actions')) return;
-                e.preventDefault();
-                this.handleCounterRelease(student.id);
+                
+                if (this.counterPressTimeout) {
+                    clearTimeout(this.counterPressTimeout);
+                    this.counterPressTimeout = null;
+                }
+                
+                if (!card.classList.contains('dragging') && this.longPressTimer) {
+                    e.preventDefault();
+                    this.handleCounterRelease(student.id);
+                }
             });
 
             card.addEventListener('touchcancel', (e) => {
+                if (this.counterPressTimeout) {
+                    clearTimeout(this.counterPressTimeout);
+                    this.counterPressTimeout = null;
+                }
                 this.handleCounterRelease(student.id);
             });
-
-            // Disable drag for seated students to prevent conflicts
-            card.draggable = false;
         } else {
             // Double click to remove from seat (only for students in pool)
             card.addEventListener('dblclick', () => {
@@ -644,28 +674,50 @@ class SeatingPlan {
 
     assignStudentToSeat(studentId, seatId) {
         const student = this.students.find(s => s.id == studentId);
-        const seat = this.seats[seatId];
+        const targetSeat = this.seats[seatId];
 
-        if (!student || !seat) return;
+        if (!student || !targetSeat) return;
 
-        // Remove student from any existing seat
-        this.removeStudentFromSeat(studentId);
+        // Find current seat of the dragged student
+        const currentSeat = this.seats.find(s => s.student && s.student.id == studentId);
 
-        // If seat is occupied, move that student back to pool
-        if (seat.student) {
-            this.removeStudentFromSeat(seat.student.id);
+        // If target seat is occupied, swap students
+        if (targetSeat.student) {
+            const targetStudent = targetSeat.student;
+            
+            if (currentSeat) {
+                // Swap: move target student to current seat
+                currentSeat.student = targetStudent;
+                currentSeat.element.innerHTML = '';
+                currentSeat.element.classList.add('occupied');
+                const targetStudentCard = this.createStudentCard(targetStudent);
+                currentSeat.element.appendChild(targetStudentCard);
+            } else {
+                // Move target student back to pool
+                targetSeat.student = null;
+                targetSeat.element.classList.remove('occupied');
+                targetSeat.element.innerHTML = `<span style="color: #8e8e93; font-size: 12px;">Platz ${targetSeat.id + 1}</span>`;
+            }
+        } else if (currentSeat) {
+            // Clear current seat
+            currentSeat.student = null;
+            currentSeat.element.classList.remove('occupied');
+            currentSeat.element.innerHTML = `<span style="color: #8e8e93; font-size: 12px;">Platz ${currentSeat.id + 1}</span>`;
         }
 
-        // Assign student to seat
-        seat.student = student;
-        seat.element.innerHTML = '';
-        seat.element.classList.add('occupied');
+        // Assign dragged student to target seat
+        targetSeat.student = student;
+        targetSeat.element.innerHTML = '';
+        targetSeat.element.classList.add('occupied');
 
         const studentCard = this.createStudentCard(student);
-        seat.element.appendChild(studentCard);
+        targetSeat.element.appendChild(studentCard);
 
         // Update student pool
         this.renderStudentPool();
+        
+        // Save state
+        this.saveCurrentClassState();
     }
 
     removeStudentFromSeat(studentId) {
