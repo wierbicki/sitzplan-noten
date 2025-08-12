@@ -1,16 +1,63 @@
+
 <!DOCTYPE html>
-<html>
-
+<html lang="de">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width">
-  <title>replit</title>
-  <link href="style.css" rel="stylesheet" type="text/css" />
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sitzplan - Klassenverwaltung</title>
+    <link href="style.css" rel="stylesheet" type="text/css" />
 </head>
-
 <body>
-  Hello world
-  <script src="script.js"></script>
-</body>
+    <div class="app-container">
+        <header class="header">
+            <h1>Sitzplan</h1>
+            <div class="controls">
+                <button class="btn-primary" id="addStudent">Schüler hinzufügen</button>
+                <button class="btn-secondary" id="resetSeats">Plätze zurücksetzen</button>
+            </div>
+        </header>
+        
+        <div class="main-content">
+            <div class="sidebar">
+                <h3>Schülerliste</h3>
+                <div class="student-pool" id="studentPool">
+                    <!-- Students will be added here -->
+                </div>
+            </div>
+            
+            <div class="seating-area">
+                <div class="classroom-grid" id="classroomGrid">
+                    <!-- Grid seats will be generated here -->
+                </div>
+            </div>
+        </div>
+    </div>
 
+    <!-- Modal for adding students -->
+    <div class="modal" id="studentModal">
+        <div class="modal-content">
+            <h3>Neuen Schüler hinzufügen</h3>
+            <form id="studentForm">
+                <div class="form-group">
+                    <label for="firstName">Vorname:</label>
+                    <input type="text" id="firstName" required>
+                </div>
+                <div class="form-group">
+                    <label for="lastName">Nachname:</label>
+                    <input type="text" id="lastName" required>
+                </div>
+                <div class="form-group">
+                    <label for="studentPhoto">Foto (optional):</label>
+                    <input type="file" id="studentPhoto" accept="image/*">
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn-secondary" id="cancelModal">Abbrechen</button>
+                    <button type="submit" class="btn-primary">Hinzufügen</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
 </html>
