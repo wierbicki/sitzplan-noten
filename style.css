@@ -341,12 +341,14 @@ body {
 
 .student-card-actions {
     position: absolute;
-    top: -32px;
+    top: -40px;
     right: 4px;
     display: none;
     gap: 4px;
     z-index: 20;
     pointer-events: auto;
+    padding: 8px;
+    margin: -8px;
 }
 
 .student-card:hover .student-card-actions {
