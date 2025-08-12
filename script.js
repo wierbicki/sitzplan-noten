@@ -121,6 +121,14 @@ class SeatingPlan {
             this.setStartingGrade(3.5);
         });
 
+        document.getElementById('showGradeTable').addEventListener('click', () => {
+            this.showGradeTable();
+        });
+
+        document.getElementById('closeGradeTable').addEventListener('click', () => {
+            document.getElementById('gradeTableModal').style.display = 'none';
+        });
+
         // Class management events
         document.getElementById('addClass').addEventListener('click', () => {
             document.getElementById('classModal').style.display = 'block';
@@ -182,6 +190,12 @@ class SeatingPlan {
             if (e.target === e.currentTarget) {
                 document.getElementById('classModal').style.display = 'none';
                 document.getElementById('classForm').reset();
+            }
+        });
+
+        document.getElementById('gradeTableModal').addEventListener('click', (e) => {
+            if (e.target === e.currentTarget) {
+                document.getElementById('gradeTableModal').style.display = 'none';
             }
         });
     }
@@ -369,14 +383,18 @@ class SeatingPlan {
 
     updateGradeDisplay() {
         const toggleBtn = document.getElementById('toggleGrades');
+        const gradeTableBtn = document.getElementById('showGradeTable');
+        
         if (this.showGrades) {
             toggleBtn.textContent = 'Zähler anzeigen';
             toggleBtn.style.background = '#34c759';
             toggleBtn.style.color = 'white';
+            gradeTableBtn.style.display = 'inline-block';
         } else {
             toggleBtn.textContent = 'Noten anzeigen';
             toggleBtn.style.background = '';
             toggleBtn.style.color = '';
+            gradeTableBtn.style.display = 'none';
         }
     }
 
@@ -1074,6 +1092,79 @@ class SeatingPlan {
         };
         
         reader.readAsText(file);
+    }
+
+    showGradeTable() {
+        if (!this.currentClassId || !this.showGrades) {
+            return;
+        }
+
+        // Collect all students with their grades
+        const studentsWithGrades = [];
+        
+        this.students.forEach(student => {
+            const grade = this.calculateGrade(student.id);
+            studentsWithGrades.push({
+                lastName: student.lastName,
+                firstName: student.firstName,
+                grade: grade,
+                gradeValue: parseFloat(grade)
+            });
+        });
+
+        // Sort by lastname, then firstname
+        studentsWithGrades.sort((a, b) => {
+            const lastNameCompare = a.lastName.localeCompare(b.lastName, 'de');
+            if (lastNameCompare !== 0) return lastNameCompare;
+            return a.firstName.localeCompare(b.firstName, 'de');
+        });
+
+        // Create table HTML
+        let tableHTML = `
+            <table class="grade-table">
+                <thead>
+                    <tr>
+                        <th>Nachname</th>
+                        <th>Vorname</th>
+                        <th>Note</th>
+                    </tr>
+                </thead>
+                <tbody>
+        `;
+
+        studentsWithGrades.forEach(student => {
+            let gradeClass = '';
+            if (student.gradeValue >= 1.0 && student.gradeValue <= 1.5) {
+                gradeClass = 'grade-1';
+            } else if (student.gradeValue > 1.5 && student.gradeValue <= 2.5) {
+                gradeClass = 'grade-2';
+            } else if (student.gradeValue > 2.5 && student.gradeValue <= 3.5) {
+                gradeClass = 'grade-3';
+            } else if (student.gradeValue > 3.5 && student.gradeValue <= 4.5) {
+                gradeClass = 'grade-4';
+            } else if (student.gradeValue > 4.5 && student.gradeValue <= 5.5) {
+                gradeClass = 'grade-5';
+            } else {
+                gradeClass = 'grade-6';
+            }
+
+            tableHTML += `
+                <tr>
+                    <td>${student.lastName}</td>
+                    <td>${student.firstName}</td>
+                    <td><span class="grade-cell ${gradeClass}">${student.grade}</span></td>
+                </tr>
+            `;
+        });
+
+        tableHTML += `
+                </tbody>
+            </table>
+        `;
+
+        // Insert table into modal and show
+        document.getElementById('gradeTableContainer').innerHTML = tableHTML;
+        document.getElementById('gradeTableModal').style.display = 'block';
     }
 }
 
