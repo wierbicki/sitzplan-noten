@@ -7,6 +7,9 @@ class SeatingPlan {
         this.gridColumns = 6;
         this.currentEditingStudent = null;
         this.studentCounters = new Map(); // Store counters for each student
+        this.longPressTimer = null;
+        this.isLongPress = false;
+        this.longPressDelay = 500; // 500ms for long press
         this.init();
     }
 
@@ -239,20 +242,40 @@ class SeatingPlan {
         card.addEventListener('dragstart', this.handleDragStart.bind(this));
         card.addEventListener('dragend', this.handleDragEnd.bind(this));
 
-        // Add counter click events (only for seated students)
+        // Add counter events (only for seated students)
         if (this.seats.some(seat => seat.student && seat.student.id === student.id)) {
-            // Single click to increment counter
-            card.addEventListener('click', (e) => {
+            // Mouse events
+            card.addEventListener('mousedown', (e) => {
                 if (e.target.closest('.student-card-actions')) return; // Don't trigger on edit button
                 e.preventDefault();
-                this.incrementCounter(student.id);
+                this.handleCounterPress(student.id);
             });
 
-            // Double click to decrement counter
-            card.addEventListener('dblclick', (e) => {
-                if (e.target.closest('.student-card-actions')) return; // Don't trigger on edit button
+            card.addEventListener('mouseup', (e) => {
+                if (e.target.closest('.student-card-actions')) return;
                 e.preventDefault();
-                this.decrementCounter(student.id);
+                this.handleCounterRelease(student.id);
+            });
+
+            card.addEventListener('mouseleave', (e) => {
+                this.handleCounterRelease(student.id);
+            });
+
+            // Touch events for mobile
+            card.addEventListener('touchstart', (e) => {
+                if (e.target.closest('.student-card-actions')) return;
+                e.preventDefault();
+                this.handleCounterPress(student.id);
+            });
+
+            card.addEventListener('touchend', (e) => {
+                if (e.target.closest('.student-card-actions')) return;
+                e.preventDefault();
+                this.handleCounterRelease(student.id);
+            });
+
+            card.addEventListener('touchcancel', (e) => {
+                this.handleCounterRelease(student.id);
             });
 
             // Disable drag for seated students to prevent conflicts
@@ -425,6 +448,31 @@ class SeatingPlan {
 
         // Update student pool
         this.renderStudentPool();
+    }
+
+    handleCounterPress(studentId) {
+        this.isLongPress = false;
+        
+        // Set timer for long press
+        this.longPressTimer = setTimeout(() => {
+            this.isLongPress = true;
+            this.decrementCounter(studentId);
+        }, this.longPressDelay);
+    }
+
+    handleCounterRelease(studentId) {
+        // Clear the timer
+        if (this.longPressTimer) {
+            clearTimeout(this.longPressTimer);
+            this.longPressTimer = null;
+        }
+
+        // If it wasn't a long press, it's a short click - increment
+        if (!this.isLongPress) {
+            this.incrementCounter(studentId);
+        }
+
+        this.isLongPress = false;
     }
 
     incrementCounter(studentId) {
