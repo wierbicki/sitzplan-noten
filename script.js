@@ -60,10 +60,6 @@ class SeatingPlan {
             document.getElementById('studentModal').style.display = 'block';
         });
 
-        document.getElementById('moreOptions').addEventListener('click', () => {
-            this.toggleAdvancedControls();
-        });
-
         document.getElementById('cancelModal').addEventListener('click', () => {
             document.getElementById('studentModal').style.display = 'none';
             this.clearForm();
@@ -158,6 +154,20 @@ class SeatingPlan {
 
         document.getElementById('importFile').addEventListener('change', (e) => {
             this.importData(e.target.files[0]);
+        });
+
+        // Dropdown menu functionality
+        document.getElementById('moreOptions').addEventListener('click', (e) => {
+            e.stopPropagation();
+            const dropdown = document.getElementById('dropdownContent');
+            dropdown.classList.toggle('show');
+        });
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.dropdown-menu')) {
+                document.getElementById('dropdownContent').classList.remove('show');
+            }
         });
 
         // Close modal on background click
@@ -1064,19 +1074,6 @@ class SeatingPlan {
         };
         
         reader.readAsText(file);
-    }
-
-    toggleAdvancedControls() {
-        const advancedControls = document.getElementById('advancedControls');
-        const moreOptionsBtn = document.getElementById('moreOptions');
-        
-        if (advancedControls.style.display === 'none') {
-            advancedControls.style.display = 'block';
-            moreOptionsBtn.innerHTML = 'Weniger Optionen ▲';
-        } else {
-            advancedControls.style.display = 'none';
-            moreOptionsBtn.innerHTML = 'Mehr Optionen ▼';
-        }
     }
 }
 
