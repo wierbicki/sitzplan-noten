@@ -780,18 +780,16 @@ class SeatingPlan {
     deleteCurrentStudent() {
         if (!this.currentEditingStudent) return;
 
-        if (confirm(`Möchten Sie ${this.currentEditingStudent.firstName} ${this.currentEditingStudent.lastName} aus dem Grid entfernen?`)) {
-            // Remove from any seat (but keep in students array)
-            this.removeStudentFromSeat(this.currentEditingStudent.id);
+        // Remove from any seat (but keep in students array)
+        this.removeStudentFromSeat(this.currentEditingStudent.id);
 
-            // Clear counter for this student
-            this.studentCounters.delete(this.currentEditingStudent.id);
+        // Clear counter for this student
+        this.studentCounters.delete(this.currentEditingStudent.id);
 
-            // Close modal and refresh
-            document.getElementById('studentModal').style.display = 'none';
-            this.clearForm();
-            this.renderStudentPool();
-        }
+        // Close modal and refresh
+        document.getElementById('studentModal').style.display = 'none';
+        this.clearForm();
+        this.renderStudentPool();
     }
 
     updateStudentEverywhere(student) {
