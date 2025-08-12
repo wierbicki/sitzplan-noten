@@ -850,7 +850,8 @@ class SeatingPlan {
         const floatingBtn = document.createElement('button');
         floatingBtn.className = 'floating-header-toggle';
         floatingBtn.id = 'floatingHeaderToggle';
-        floatingBtn.textContent = 'Header einblenden';
+        floatingBtn.textContent = '⬇️';
+        floatingBtn.title = 'Header einblenden';
         floatingBtn.addEventListener('click', () => {
             this.toggleHeader();
         });
