@@ -144,6 +144,18 @@ class SeatingPlan {
             this.deleteCurrentClass();
         });
 
+        document.getElementById('exportData').addEventListener('click', () => {
+            this.exportData();
+        });
+
+        document.getElementById('importData').addEventListener('click', () => {
+            document.getElementById('importFile').click();
+        });
+
+        document.getElementById('importFile').addEventListener('change', (e) => {
+            this.importData(e.target.files[0]);
+        });
+
         // Close modal on background click
         document.getElementById('studentModal').addEventListener('click', (e) => {
             if (e.target === e.currentTarget) {
@@ -933,6 +945,121 @@ class SeatingPlan {
                 this.updateCounterDisplay(seat.student.id);
             }
         });
+    }
+
+    exportData() {
+        // Save current class state before exporting
+        if (this.currentClassId) {
+            this.saveCurrentClassState();
+        }
+
+        // Prepare export data
+        const exportData = {
+            version: '1.0',
+            timestamp: new Date().toISOString(),
+            classes: []
+        };
+
+        // Convert classes Map to exportable format
+        this.classes.forEach((classData, id) => {
+            const exportClass = {
+                id: id,
+                name: classData.name,
+                students: classData.students || [],
+                studentCounters: Array.from((classData.studentCounters || new Map()).entries()),
+                seatAssignments: Array.from((classData.seatAssignments || new Map()).entries()),
+                gridRows: classData.gridRows || 5,
+                gridColumns: classData.gridColumns || 6,
+                showGrades: classData.showGrades || false,
+                startingGrade: classData.startingGrade || 4.0
+            };
+            exportData.classes.push(exportClass);
+        });
+
+        // Create and download file
+        const dataStr = JSON.stringify(exportData, null, 2);
+        const dataBlob = new Blob([dataStr], { type: 'application/json' });
+        
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(dataBlob);
+        link.download = `sitzplan_export_${new Date().toISOString().split('T')[0]}.json`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        alert('Daten erfolgreich exportiert!');
+    }
+
+    importData(file) {
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            try {
+                const importData = JSON.parse(e.target.result);
+                
+                // Validate import data
+                if (!importData.version || !importData.classes) {
+                    throw new Error('Ungültiges Dateiformat');
+                }
+
+                // Confirm import
+                const confirmMessage = `Möchten Sie die Daten importieren?\n\n` +
+                    `Anzahl Klassen: ${importData.classes.length}\n` +
+                    `Exportiert am: ${importData.timestamp ? new Date(importData.timestamp).toLocaleString('de-DE') : 'Unbekannt'}\n\n` +
+                    `Achtung: Alle aktuellen Daten werden überschrieben!`;
+
+                if (!confirm(confirmMessage)) {
+                    document.getElementById('importFile').value = '';
+                    return;
+                }
+
+                // Clear current data
+                this.classes.clear();
+                this.currentClassId = null;
+
+                // Import classes
+                importData.classes.forEach(classData => {
+                    const importedClass = {
+                        id: classData.id,
+                        name: classData.name,
+                        students: classData.students || [],
+                        studentCounters: new Map(classData.studentCounters || []),
+                        seatAssignments: new Map(classData.seatAssignments || []),
+                        gridRows: classData.gridRows || 5,
+                        gridColumns: classData.gridColumns || 6,
+                        showGrades: classData.showGrades || false,
+                        startingGrade: classData.startingGrade || 4.0
+                    };
+                    this.classes.set(classData.id, importedClass);
+                });
+
+                // If no classes were imported, create a default one
+                if (this.classes.size === 0) {
+                    this.createDefaultClass();
+                } else {
+                    // Switch to first imported class
+                    const firstClassId = this.classes.keys().next().value;
+                    this.switchClass(firstClassId);
+                }
+
+                // Update UI
+                this.updateClassSelect();
+                this.saveClasses();
+                
+                alert(`Import erfolgreich! ${importData.classes.length} Klasse(n) wurden importiert.`);
+                
+                // Clear file input
+                document.getElementById('importFile').value = '';
+                
+            } catch (error) {
+                console.error('Import error:', error);
+                alert('Fehler beim Importieren der Datei: ' + error.message);
+                document.getElementById('importFile').value = '';
+            }
+        };
+        
+        reader.readAsText(file);
     }
 }
 
