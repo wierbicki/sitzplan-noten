@@ -633,11 +633,14 @@ class SeatingPlan {
 
         // Add counter events (only for seated students)
         if (isSeated) {
-            // Main counter events on entire card (except on message counter)
+            // Debounce variables for preventing multiple clicks
+            let lastInteractionTime = 0;
+            let debounceDelay = 300; // 300ms debounce
             let touchStarted = false;
             let mouseStarted = false;
             let touchStartPosition = null;
             let mouseStartPosition = null;
+            let interactionProcessed = false;
 
             // Touch events for mobile devices
             card.addEventListener('touchstart', (e) => {
@@ -645,9 +648,17 @@ class SeatingPlan {
                 if (e.target.closest('.student-message-counter')) return;
                 
                 e.stopPropagation();
+                e.preventDefault(); // Prevent mouse events from firing
+                
+                const now = Date.now();
+                if (now - lastInteractionTime < debounceDelay) {
+                    return; // Ignore if too soon after last interaction
+                }
+                
                 touchStarted = true;
                 mouseStarted = false;
                 this.isDragging = false;
+                interactionProcessed = false;
                 touchStartPosition = { 
                     x: e.touches[0].clientX, 
                     y: e.touches[0].clientY 
@@ -671,6 +682,7 @@ class SeatingPlan {
                     if (!this.isDragging) {
                         this.isDragging = true;
                         this.handleCounterRelease(student.id);
+                        interactionProcessed = true;
                     }
                 }
             });
@@ -680,12 +692,18 @@ class SeatingPlan {
                 if (e.target.closest('.student-message-counter')) return;
                 
                 e.stopPropagation();
+                e.preventDefault(); // Prevent mouse events from firing
+                
                 if (!touchStarted) return;
                 touchStarted = false;
 
+                const now = Date.now();
+                
                 setTimeout(() => {
-                    if (!this.isDragging) {
+                    if (!this.isDragging && !interactionProcessed) {
                         this.handleCounterRelease(student.id);
+                        lastInteractionTime = now;
+                        interactionProcessed = true;
                     }
                     touchStartPosition = null;
                 }, 50);
@@ -698,19 +716,22 @@ class SeatingPlan {
                 setTimeout(() => {
                     this.handleCounterRelease(student.id);
                     touchStartPosition = null;
+                    interactionProcessed = true;
                 }, 50);
             });
 
-            // Mouse events for desktop
+            // Mouse events for desktop (only if no touch interaction)
             card.addEventListener('mousedown', (e) => {
-                // Don't handle if clicking message counter
+                // Don't handle if clicking message counter or if touch was used recently
                 if (e.target.closest('.student-message-counter')) return;
                 
+                const now = Date.now();
+                if (now - lastInteractionTime < debounceDelay || touchStarted) return;
+                
                 e.stopPropagation();
-                if (touchStarted) return;
-
                 mouseStarted = true;
                 this.isDragging = false;
+                interactionProcessed = false;
                 mouseStartPosition = { x: e.clientX, y: e.clientY };
                 this.handleCounterPress(student.id);
             });
@@ -727,6 +748,7 @@ class SeatingPlan {
                     if (!this.isDragging) {
                         this.isDragging = true;
                         this.handleCounterRelease(student.id);
+                        interactionProcessed = true;
                     }
                 }
             });
@@ -739,9 +761,12 @@ class SeatingPlan {
                 if (!mouseStarted || touchStarted) return;
 
                 mouseStarted = false;
+                const now = Date.now();
 
-                if (!this.isDragging) {
+                if (!this.isDragging && !interactionProcessed) {
                     this.handleCounterRelease(student.id);
+                    lastInteractionTime = now;
+                    interactionProcessed = true;
                 }
 
                 mouseStartPosition = null;
@@ -753,20 +778,37 @@ class SeatingPlan {
                 mouseStarted = false;
                 this.handleCounterRelease(student.id);
                 mouseStartPosition = null;
+                interactionProcessed = true;
             });
 
             // Message counter events (only on direct clicks)
             const messageCounter = card.querySelector('.student-message-counter');
             if (messageCounter) {
+                let messageCounterLastClick = 0;
+                
                 messageCounter.addEventListener('click', (e) => {
                     e.stopPropagation();
                     e.preventDefault();
+                    
+                    const now = Date.now();
+                    if (now - messageCounterLastClick < debounceDelay) {
+                        return; // Ignore if too soon after last click
+                    }
+                    
+                    messageCounterLastClick = now;
                     this.incrementMessageCounter(student.id);
                 });
 
                 messageCounter.addEventListener('contextmenu', (e) => {
                     e.preventDefault();
                     e.stopPropagation();
+                    
+                    const now = Date.now();
+                    if (now - messageCounterLastClick < debounceDelay) {
+                        return; // Ignore if too soon after last interaction
+                    }
+                    
+                    messageCounterLastClick = now;
                     this.decrementMessageCounter(student.id);
                 });
             }
