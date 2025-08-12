@@ -79,7 +79,7 @@ body {
     transform: translateY(-1px);
 }
 
-.btn-primary, .btn-secondary {
+.btn-primary, .btn-secondary, .btn-danger {
     padding: 10px 20px;
     border-radius: 20px;
     border: none;
@@ -107,6 +107,16 @@ body {
 
 .btn-secondary:hover {
     background: rgba(142, 142, 147, 0.2);
+    transform: translateY(-1px);
+}
+
+.btn-danger {
+    background: #ff3b30;
+    color: white;
+}
+
+.btn-danger:hover {
+    background: #d70015;
     transform: translateY(-1px);
 }
 
@@ -194,6 +204,39 @@ body {
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
     border: 1px solid rgba(255, 255, 255, 0.5);
     min-width: 100px;
+    position: relative;
+}
+
+.student-card-actions {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    display: none;
+    gap: 4px;
+}
+
+.student-card:hover .student-card-actions {
+    display: flex;
+}
+
+.btn-edit {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    border: none;
+    background: #007aff;
+    color: white;
+    font-size: 10px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+}
+
+.btn-edit:hover {
+    background: #0056cc;
+    transform: scale(1.1);
 }
 
 .student-card:hover {

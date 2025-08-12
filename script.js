@@ -6,6 +6,7 @@ class SeatingPlan {
         this.draggedElement = null;
         this.gridRows = 5;
         this.gridColumns = 6;
+        this.currentEditingStudent = null;
         this.init();
     }
 
@@ -82,6 +83,10 @@ class SeatingPlan {
             this.removeColumn();
         });
 
+        document.getElementById('deleteStudent').addEventListener('click', () => {
+            this.deleteCurrentStudent();
+        });
+
         // Close modal on background click
         document.getElementById('studentModal').addEventListener('click', (e) => {
             if (e.target === e.currentTarget) {
@@ -119,24 +124,43 @@ class SeatingPlan {
 
         if (!firstName || !lastName) return;
 
-        const student = {
-            id: Date.now() + Math.random(),
-            firstName,
-            lastName,
-            photo: null
-        };
+        if (this.currentEditingStudent) {
+            // Edit existing student
+            const student = this.currentEditingStudent;
+            student.firstName = firstName;
+            student.lastName = lastName;
 
-        if (photoFile) {
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                student.photo = e.target.result;
+            if (photoFile) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    student.photo = e.target.result;
+                    this.updateStudentEverywhere(student);
+                };
+                reader.readAsDataURL(photoFile);
+            } else {
+                this.updateStudentEverywhere(student);
+            }
+        } else {
+            // Add new student
+            const student = {
+                id: Date.now() + Math.random(),
+                firstName,
+                lastName,
+                photo: null
+            };
+
+            if (photoFile) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    student.photo = e.target.result;
+                    this.students.push(student);
+                    this.renderStudentPool();
+                };
+                reader.readAsDataURL(photoFile);
+            } else {
                 this.students.push(student);
                 this.renderStudentPool();
-            };
-            reader.readAsDataURL(photoFile);
-        } else {
-            this.students.push(student);
-            this.renderStudentPool();
+            }
         }
 
         document.getElementById('studentModal').style.display = 'none';
@@ -145,6 +169,10 @@ class SeatingPlan {
 
     clearForm() {
         document.getElementById('studentForm').reset();
+        this.currentEditingStudent = null;
+        document.getElementById('deleteStudent').style.display = 'none';
+        document.getElementById('submitButton').textContent = 'Hinzufügen';
+        document.querySelector('.modal-content h3').textContent = 'Neuen Schüler hinzufügen';
     }
 
     renderStudentPool() {
@@ -183,6 +211,21 @@ class SeatingPlan {
         name.className = 'student-name';
         name.textContent = `${student.firstName} ${student.lastName}`;
 
+        // Add edit button
+        const actions = document.createElement('div');
+        actions.className = 'student-card-actions';
+        
+        const editBtn = document.createElement('button');
+        editBtn.className = 'btn-edit';
+        editBtn.innerHTML = '✏';
+        editBtn.title = 'Bearbeiten';
+        editBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this.editStudent(student);
+        });
+        
+        actions.appendChild(editBtn);
+        card.appendChild(actions);
         card.appendChild(avatar);
         card.appendChild(name);
 
@@ -307,6 +350,54 @@ class SeatingPlan {
         this.resetAllSeats();
         this.gridColumns--;
         this.createSeats();
+    }
+
+    editStudent(student) {
+        this.currentEditingStudent = student;
+        
+        // Fill form with student data
+        document.getElementById('firstName').value = student.firstName;
+        document.getElementById('lastName').value = student.lastName;
+        
+        // Update modal for edit mode
+        document.getElementById('deleteStudent').style.display = 'inline-block';
+        document.getElementById('submitButton').textContent = 'Aktualisieren';
+        document.querySelector('.modal-content h3').textContent = 'Schüler bearbeiten';
+        
+        // Show modal
+        document.getElementById('studentModal').style.display = 'block';
+    }
+
+    deleteCurrentStudent() {
+        if (!this.currentEditingStudent) return;
+        
+        if (confirm(`Möchten Sie ${this.currentEditingStudent.firstName} ${this.currentEditingStudent.lastName} wirklich löschen?`)) {
+            // Remove from students array
+            this.students = this.students.filter(s => s.id !== this.currentEditingStudent.id);
+            
+            // Remove from any seat
+            this.removeStudentFromSeat(this.currentEditingStudent.id);
+            
+            // Close modal and refresh
+            document.getElementById('studentModal').style.display = 'none';
+            this.clearForm();
+            this.renderStudentPool();
+        }
+    }
+
+    updateStudentEverywhere(student) {
+        // Update in seats if assigned
+        const assignedSeat = this.seats.find(seat => seat.student && seat.student.id === student.id);
+        if (assignedSeat) {
+            assignedSeat.student = student;
+            assignedSeat.element.innerHTML = '';
+            assignedSeat.element.classList.add('occupied');
+            const studentCard = this.createStudentCard(student);
+            assignedSeat.element.appendChild(studentCard);
+        }
+        
+        // Update student pool
+        this.renderStudentPool();
     }
 }
 
