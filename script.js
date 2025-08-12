@@ -516,7 +516,7 @@ class SeatingPlan {
 
         const name = document.createElement('div');
         name.className = 'student-name';
-        name.textContent = `${student.firstName} ${student.lastName}`;
+        name.textContent = student.firstName;
 
         // Add counter display
         const counter = document.createElement('div');
