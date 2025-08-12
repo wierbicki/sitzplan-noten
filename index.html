@@ -10,7 +10,17 @@
 <body>
     <div class="app-container">
         <header class="header">
-            <h1>Sitzplan</h1>
+            <div class="header-top">
+                <h1>Sitzplan</h1>
+                <div class="class-controls">
+                    <span class="grid-label">Klasse:</span>
+                    <select id="classSelect" class="class-select">
+                        <option value="">Klasse auswählen...</option>
+                    </select>
+                    <button class="btn-primary" id="addClass">Neue Klasse</button>
+                    <button class="btn-danger" id="deleteClass" style="display: none;">Klasse löschen</button>
+                </div>
+            </div>
             <div class="controls">
                 <button class="btn-primary" id="addStudent">Schüler hinzufügen</button>
                 <button class="btn-secondary" id="resetSeats">Plätze zurücksetzen</button>
@@ -68,6 +78,23 @@
                     <button type="button" class="btn-secondary" id="cancelModal">Abbrechen</button>
                     <button type="button" class="btn-danger" id="deleteStudent" style="display: none;">Löschen</button>
                     <button type="submit" class="btn-primary" id="submitButton">Hinzufügen</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal for adding classes -->
+    <div class="modal" id="classModal">
+        <div class="modal-content">
+            <h3>Neue Klasse anlegen</h3>
+            <form id="classForm">
+                <div class="form-group">
+                    <label for="className">Klassenname:</label>
+                    <input type="text" id="className" placeholder="z.B. 5a, 10b, Mathe-LK" required>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn-secondary" id="cancelClassModal">Abbrechen</button>
+                    <button type="submit" class="btn-primary">Anlegen</button>
                 </div>
             </form>
         </div>

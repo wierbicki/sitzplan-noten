@@ -1,5 +1,7 @@
 class SeatingPlan {
     constructor() {
+        this.classes = new Map(); // Store all classes and their data
+        this.currentClassId = null;
         this.students = [];
         this.seats = [];
         this.draggedElement = null;
@@ -18,7 +20,8 @@ class SeatingPlan {
     init() {
         this.createSeats();
         this.bindEvents();
-        this.loadSampleData();
+        this.loadClasses();
+        this.updateClassSelect();
     }
 
     createSeats() {
@@ -108,6 +111,29 @@ class SeatingPlan {
             this.setStartingGrade(3.5);
         });
 
+        // Class management events
+        document.getElementById('addClass').addEventListener('click', () => {
+            document.getElementById('classModal').style.display = 'block';
+        });
+
+        document.getElementById('cancelClassModal').addEventListener('click', () => {
+            document.getElementById('classModal').style.display = 'none';
+            document.getElementById('classForm').reset();
+        });
+
+        document.getElementById('classForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            this.addClass();
+        });
+
+        document.getElementById('classSelect').addEventListener('change', (e) => {
+            this.switchClass(e.target.value);
+        });
+
+        document.getElementById('deleteClass').addEventListener('click', () => {
+            this.deleteCurrentClass();
+        });
+
         // Close modal on background click
         document.getElementById('studentModal').addEventListener('click', (e) => {
             if (e.target === e.currentTarget) {
@@ -115,30 +141,222 @@ class SeatingPlan {
                 this.clearForm();
             }
         });
+
+        document.getElementById('classModal').addEventListener('click', (e) => {
+            if (e.target === e.currentTarget) {
+                document.getElementById('classModal').style.display = 'none';
+                document.getElementById('classForm').reset();
+            }
+        });
     }
 
-    loadSampleData() {
-        const sampleStudents = [
-            { firstName: 'Max', lastName: 'Mustermann' },
-            { firstName: 'Anna', lastName: 'Schmidt' },
-            { firstName: 'Tom', lastName: 'Weber' },
-            { firstName: 'Lisa', lastName: 'Mueller' },
-            { firstName: 'Paul', lastName: 'Wagner' }
-        ];
+    loadClasses() {
+        const savedClasses = localStorage.getItem('seatingPlan_classes');
+        if (savedClasses) {
+            const classesData = JSON.parse(savedClasses);
+            this.classes = new Map(classesData.map(cls => [cls.id, cls]));
+        }
 
-        sampleStudents.forEach(student => {
-            this.students.push({
-                id: Date.now() + Math.random(),
-                firstName: student.firstName,
-                lastName: student.lastName,
-                photo: null
-            });
+        // If no classes exist, create a default one
+        if (this.classes.size === 0) {
+            this.createDefaultClass();
+        }
+    }
+
+    createDefaultClass() {
+        const defaultClass = {
+            id: 'default_' + Date.now(),
+            name: 'Beispielklasse',
+            students: [
+                { id: Date.now() + Math.random(), firstName: 'Max', lastName: 'Mustermann', photo: null },
+                { id: Date.now() + Math.random() + 1, firstName: 'Anna', lastName: 'Schmidt', photo: null },
+                { id: Date.now() + Math.random() + 2, firstName: 'Tom', lastName: 'Weber', photo: null },
+                { id: Date.now() + Math.random() + 3, firstName: 'Lisa', lastName: 'Mueller', photo: null },
+                { id: Date.now() + Math.random() + 4, firstName: 'Paul', lastName: 'Wagner', photo: null }
+            ],
+            studentCounters: new Map(),
+            seatAssignments: new Map(),
+            gridRows: 5,
+            gridColumns: 6,
+            showGrades: false,
+            startingGrade: 4.0
+        };
+
+        this.classes.set(defaultClass.id, defaultClass);
+        this.currentClassId = defaultClass.id;
+        this.switchClass(defaultClass.id);
+        this.saveClasses();
+    }
+
+    addClass() {
+        const className = document.getElementById('className').value.trim();
+        if (!className) return;
+
+        const newClass = {
+            id: 'class_' + Date.now(),
+            name: className,
+            students: [],
+            studentCounters: new Map(),
+            seatAssignments: new Map(),
+            gridRows: 5,
+            gridColumns: 6,
+            showGrades: false,
+            startingGrade: 4.0
+        };
+
+        this.classes.set(newClass.id, newClass);
+        this.saveClasses();
+        this.updateClassSelect();
+        
+        // Switch to the new class
+        this.switchClass(newClass.id);
+        
+        document.getElementById('classModal').style.display = 'none';
+        document.getElementById('classForm').reset();
+    }
+
+    switchClass(classId) {
+        if (!classId || !this.classes.has(classId)) {
+            this.currentClassId = null;
+            this.students = [];
+            this.studentCounters = new Map();
+            this.updateUI();
+            return;
+        }
+
+        // Save current class state
+        if (this.currentClassId && this.classes.has(this.currentClassId)) {
+            this.saveCurrentClassState();
+        }
+
+        // Load new class
+        this.currentClassId = classId;
+        const classData = this.classes.get(classId);
+        
+        this.students = classData.students || [];
+        this.studentCounters = new Map(classData.studentCounters || []);
+        this.gridRows = classData.gridRows || 5;
+        this.gridColumns = classData.gridColumns || 6;
+        this.showGrades = classData.showGrades || false;
+        this.startingGrade = classData.startingGrade || 4.0;
+
+        // Update UI
+        this.createSeats();
+        this.loadSeatAssignments(classData.seatAssignments || new Map());
+        this.updateUI();
+        
+        // Update class selector
+        document.getElementById('classSelect').value = classId;
+        document.getElementById('deleteClass').style.display = this.classes.size > 1 ? 'inline-block' : 'none';
+    }
+
+    saveCurrentClassState() {
+        if (!this.currentClassId || !this.classes.has(this.currentClassId)) return;
+
+        const classData = this.classes.get(this.currentClassId);
+        classData.students = this.students;
+        classData.studentCounters = this.studentCounters;
+        classData.seatAssignments = this.getSeatAssignments();
+        classData.gridRows = this.gridRows;
+        classData.gridColumns = this.gridColumns;
+        classData.showGrades = this.showGrades;
+        classData.startingGrade = this.startingGrade;
+
+        this.classes.set(this.currentClassId, classData);
+        this.saveClasses();
+    }
+
+    getSeatAssignments() {
+        const assignments = new Map();
+        this.seats.forEach((seat, index) => {
+            if (seat.student) {
+                assignments.set(index, seat.student.id);
+            }
+        });
+        return assignments;
+    }
+
+    loadSeatAssignments(assignments) {
+        assignments.forEach((studentId, seatIndex) => {
+            const student = this.students.find(s => s.id === studentId);
+            if (student && this.seats[seatIndex]) {
+                this.assignStudentToSeat(studentId, seatIndex);
+            }
+        });
+    }
+
+    updateClassSelect() {
+        const select = document.getElementById('classSelect');
+        select.innerHTML = '<option value="">Klasse auswählen...</option>';
+
+        this.classes.forEach((classData, id) => {
+            const option = document.createElement('option');
+            option.value = id;
+            option.textContent = classData.name;
+            select.appendChild(option);
         });
 
+        if (this.currentClassId) {
+            select.value = this.currentClassId;
+        }
+    }
+
+    deleteCurrentClass() {
+        if (!this.currentClassId || this.classes.size <= 1) return;
+
+        const classData = this.classes.get(this.currentClassId);
+        if (confirm(`Möchten Sie die Klasse "${classData.name}" wirklich löschen?`)) {
+            this.classes.delete(this.currentClassId);
+            this.saveClasses();
+            
+            // Switch to first available class
+            const firstClassId = this.classes.keys().next().value;
+            this.switchClass(firstClassId);
+            this.updateClassSelect();
+        }
+    }
+
+    saveClasses() {
+        const classesData = Array.from(this.classes.entries()).map(([id, classData]) => ({
+            ...classData,
+            studentCounters: Array.from(classData.studentCounters.entries()),
+            seatAssignments: Array.from(classData.seatAssignments.entries())
+        }));
+        localStorage.setItem('seatingPlan_classes', JSON.stringify(classesData));
+    }
+
+    updateUI() {
         this.renderStudentPool();
+        this.updateGradeDisplay();
+        this.updateStartingGradeButtons();
+    }
+
+    updateGradeDisplay() {
+        const toggleBtn = document.getElementById('toggleGrades');
+        if (this.showGrades) {
+            toggleBtn.textContent = 'Zähler anzeigen';
+            toggleBtn.style.background = '#34c759';
+            toggleBtn.style.color = 'white';
+        } else {
+            toggleBtn.textContent = 'Noten anzeigen';
+            toggleBtn.style.background = '';
+            toggleBtn.style.color = '';
+        }
+    }
+
+    updateStartingGradeButtons() {
+        document.getElementById('startGrade4').style.background = this.startingGrade === 4.0 ? '#007aff' : '';
+        document.getElementById('startGrade4').style.color = this.startingGrade === 4.0 ? 'white' : '';
+        document.getElementById('startGrade35').style.background = this.startingGrade === 3.5 ? '#007aff' : '';
+        document.getElementById('startGrade35').style.color = this.startingGrade === 3.5 ? 'white' : '';
     }
 
     addStudent() {
+        if (!this.currentClassId) {
+            alert('Bitte wählen Sie zuerst eine Klasse aus.');
+            return;
+        }
+
         const firstName = document.getElementById('firstName').value.trim();
         const lastName = document.getElementById('lastName').value.trim();
         const photoFile = document.getElementById('studentPhoto').files[0];
@@ -156,10 +374,12 @@ class SeatingPlan {
                 reader.onload = (e) => {
                     student.photo = e.target.result;
                     this.updateStudentEverywhere(student);
+                    this.saveCurrentClassState();
                 };
                 reader.readAsDataURL(photoFile);
             } else {
                 this.updateStudentEverywhere(student);
+                this.saveCurrentClassState();
             }
         } else {
             // Add new student
@@ -176,11 +396,13 @@ class SeatingPlan {
                     student.photo = e.target.result;
                     this.students.push(student);
                     this.renderStudentPool();
+                    this.saveCurrentClassState();
                 };
                 reader.readAsDataURL(photoFile);
             } else {
                 this.students.push(student);
                 this.renderStudentPool();
+                this.saveCurrentClassState();
             }
         }
 
@@ -417,6 +639,7 @@ class SeatingPlan {
         this.resetAllSeats();
         this.gridRows++;
         this.createSeats();
+        this.saveCurrentClassState();
     }
 
     removeRow() {
@@ -426,6 +649,7 @@ class SeatingPlan {
         this.resetAllSeats();
         this.gridRows--;
         this.createSeats();
+        this.saveCurrentClassState();
     }
 
     addColumn() {
@@ -433,6 +657,7 @@ class SeatingPlan {
         this.resetAllSeats();
         this.gridColumns++;
         this.createSeats();
+        this.saveCurrentClassState();
     }
 
     removeColumn() {
@@ -442,6 +667,7 @@ class SeatingPlan {
         this.resetAllSeats();
         this.gridColumns--;
         this.createSeats();
+        this.saveCurrentClassState();
     }
 
     editStudent(student) {
@@ -521,6 +747,7 @@ class SeatingPlan {
         const currentCount = this.studentCounters.get(studentId) || 0;
         this.studentCounters.set(studentId, currentCount + 1);
         this.updateCounterDisplay(studentId);
+        this.saveCurrentClassState();
     }
 
     decrementCounter(studentId) {
@@ -528,6 +755,7 @@ class SeatingPlan {
         const newCount = currentCount - 1;
         this.studentCounters.set(studentId, newCount);
         this.updateCounterDisplay(studentId);
+        this.saveCurrentClassState();
     }
 
     updateCounterDisplay(studentId) {
@@ -581,37 +809,24 @@ class SeatingPlan {
 
     toggleGradeDisplay() {
         this.showGrades = !this.showGrades;
-        const toggleBtn = document.getElementById('toggleGrades');
-        
-        if (this.showGrades) {
-            toggleBtn.textContent = 'Zähler anzeigen';
-            toggleBtn.style.background = '#34c759';
-            toggleBtn.style.color = 'white';
-        } else {
-            toggleBtn.textContent = 'Noten anzeigen';
-            toggleBtn.style.background = '';
-            toggleBtn.style.color = '';
-        }
+        this.updateGradeDisplay();
         
         // Update all displays
         this.renderStudentPool();
         this.updateAllCounterDisplays();
+        this.saveCurrentClassState();
     }
 
     setStartingGrade(grade) {
         this.startingGrade = grade;
-        
-        // Update button styling
-        document.getElementById('startGrade4').style.background = grade === 4.0 ? '#007aff' : '';
-        document.getElementById('startGrade4').style.color = grade === 4.0 ? 'white' : '';
-        document.getElementById('startGrade35').style.background = grade === 3.5 ? '#007aff' : '';
-        document.getElementById('startGrade35').style.color = grade === 3.5 ? 'white' : '';
+        this.updateStartingGradeButtons();
         
         // Update all displays if grades are shown
         if (this.showGrades) {
             this.renderStudentPool();
             this.updateAllCounterDisplays();
         }
+        this.saveCurrentClassState();
     }
 
     calculateGrade(studentId) {

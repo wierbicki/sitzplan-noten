@@ -26,16 +26,48 @@ body {
     padding: 20px 30px;
     margin-bottom: 20px;
     display: flex;
-    justify-content: space-between;
-    align-items: center;
+    flex-direction: column;
+    gap: 15px;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
     border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.header-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 15px;
 }
 
 .header h1 {
     font-size: 28px;
     font-weight: 600;
     color: #1d1d1f;
+}
+
+.class-controls {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.class-select {
+    padding: 8px 12px;
+    border-radius: 10px;
+    border: 2px solid rgba(142, 142, 147, 0.3);
+    font-size: 14px;
+    font-weight: 500;
+    background: white;
+    color: #1d1d1f;
+    min-width: 180px;
+    transition: border-color 0.3s ease;
+}
+
+.class-select:focus {
+    outline: none;
+    border-color: #007aff;
 }
 
 .controls {
