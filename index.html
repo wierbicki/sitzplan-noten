@@ -22,44 +22,26 @@
                 </div>
             </div>
             <div class="controls">
-                <div class="primary-controls">
-                    <button class="btn-primary" id="addStudent">Schüler hinzufügen</button>
-                    <button class="btn-secondary" id="resetSeats">Plätze zurücksetzen</button>
-                    <button class="btn-icon" id="toggleSidebar" title="Schülerliste ein-/ausblenden">👥</button>
-                    <button class="btn-icon" id="toggleHeader" title="Header ein-/ausblenden">⬆️</button>
+                <button class="btn-primary" id="addStudent">Schüler hinzufügen</button>
+                <button class="btn-secondary" id="resetSeats">Plätze zurücksetzen</button>
+                <button class="btn-secondary" id="resetCounters">Zähler zurücksetzen</button>
+                <button class="btn-secondary" id="exportData">Export</button>
+                <input type="file" id="importFile" accept=".json" style="display: none;">
+                <button class="btn-secondary" id="importData">Import</button>
+                <button class="btn-icon" id="toggleSidebar" title="Schülerliste ein-/ausblenden">👥</button>
+                <button class="btn-icon" id="toggleHeader" title="Header ein-/ausblenden">⬆️</button>
+                <button class="btn-secondary" id="toggleGrades">Noten anzeigen</button>
+                <div class="grade-controls">
+                    <span class="grid-label">Startnote:</span>
+                    <button class="btn-grid" id="startGrade4" style="background: #007aff; color: white;">4.0</button>
+                    <button class="btn-grid" id="startGrade35">3.5</button>
                 </div>
-                
-                <div class="dropdown-menu">
-                    <button class="btn-dropdown" id="moreOptions">Mehr Optionen ⚙️</button>
-                    <div class="dropdown-content" id="dropdownContent">
-                        <div class="dropdown-section">
-                            <h4>Noten & Zähler</h4>
-                            <button class="btn-secondary" id="resetCounters">Zähler zurücksetzen</button>
-                            <button class="btn-secondary" id="toggleGrades">Noten anzeigen</button>
-                            <div class="grade-controls">
-                                <span class="grid-label">Startnote:</span>
-                                <button class="btn-grid" id="startGrade4" style="background: #007aff; color: white;">4.0</button>
-                                <button class="btn-grid" id="startGrade35">3.5</button>
-                            </div>
-                        </div>
-                        
-                        <div class="dropdown-section">
-                            <h4>Grid-Layout</h4>
-                            <div class="grid-controls">
-                                <button class="btn-grid" id="addRow">+ Zeile</button>
-                                <button class="btn-grid" id="removeRow">- Zeile</button>
-                                <button class="btn-grid" id="addColumn">+ Spalte</button>
-                                <button class="btn-grid" id="removeColumn">- Spalte</button>
-                            </div>
-                        </div>
-                        
-                        <div class="dropdown-section">
-                            <h4>Daten</h4>
-                            <button class="btn-secondary" id="exportData">Export</button>
-                            <input type="file" id="importFile" accept=".json" style="display: none;">
-                            <button class="btn-secondary" id="importData">Import</button>
-                        </div>
-                    </div>
+                <div class="grid-controls">
+                    <span class="grid-label">Grid anpassen:</span>
+                    <button class="btn-grid" id="addRow">+ Zeile</button>
+                    <button class="btn-grid" id="removeRow">- Zeile</button>
+                    <button class="btn-grid" id="addColumn">+ Spalte</button>
+                    <button class="btn-grid" id="removeColumn">- Spalte</button>
                 </div>
             </div>
         </header>
