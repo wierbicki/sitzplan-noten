@@ -295,7 +295,7 @@ body {
     display: grid;
     gap: 15px;
     height: 100%;
-    min-height: 300px;
+    max-height: 500px;
 }
 
 .seat {
