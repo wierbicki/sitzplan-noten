@@ -484,11 +484,19 @@ class SeatingPlan {
         const pool = document.getElementById('studentPool');
         pool.innerHTML = '';
 
-        this.students.forEach(student => {
-            // Only show students who aren't assigned to seats
-            const isAssigned = this.seats.some(seat => seat.student && seat.student.id === student.id);
-            if (isAssigned) return;
+        // Get unassigned students and sort them alphabetically
+        const unassignedStudents = this.students.filter(student => {
+            return !this.seats.some(seat => seat.student && seat.student.id === student.id);
+        });
 
+        // Sort alphabetically by last name, then first name
+        unassignedStudents.sort((a, b) => {
+            const lastNameCompare = a.lastName.localeCompare(b.lastName, 'de');
+            if (lastNameCompare !== 0) return lastNameCompare;
+            return a.firstName.localeCompare(b.firstName, 'de');
+        });
+
+        unassignedStudents.forEach(student => {
             const card = this.createStudentCard(student);
             pool.appendChild(card);
         });
