@@ -631,17 +631,14 @@ class SeatingPlan {
                 e.preventDefault();
                 touchStarted = true;
                 mouseStarted = false;
+                this.isDragging = false; // Reset drag state
                 touchStartPosition = { 
                     x: e.touches[0].clientX, 
                     y: e.touches[0].clientY 
                 };
 
-                // Small delay to detect if this becomes a drag
-                setTimeout(() => {
-                    if (touchStarted && !this.isDragging) {
-                        this.handleCounterPress(student.id);
-                    }
-                }, 50);
+                // Start counter press immediately
+                this.handleCounterPress(student.id);
             });
 
             card.addEventListener('touchmove', (e) => {
@@ -656,10 +653,12 @@ class SeatingPlan {
                     Math.pow(currentPos.y - touchStartPosition.y, 2)
                 );
 
-                // If moved more than 10 pixels, consider it a drag
-                if (distance > 10) {
-                    this.isDragging = true;
-                    this.handleCounterRelease(student.id);
+                // If moved more than 5 pixels, consider it a drag
+                if (distance > 5) {
+                    if (!this.isDragging) {
+                        this.isDragging = true;
+                        this.handleCounterRelease(student.id);
+                    }
                 }
             });
 
@@ -691,14 +690,11 @@ class SeatingPlan {
                 if (touchStarted) return; // Skip if touch is active
 
                 mouseStarted = true;
+                this.isDragging = false; // Reset drag state
                 mouseStartPosition = { x: e.clientX, y: e.clientY };
 
-                // Small delay to detect if this becomes a drag
-                setTimeout(() => {
-                    if (mouseStarted && !this.isDragging) {
-                        this.handleCounterPress(student.id);
-                    }
-                }, 50);
+                // Start counter press immediately
+                this.handleCounterPress(student.id);
             });
 
             card.addEventListener('mousemove', (e) => {
@@ -709,10 +705,12 @@ class SeatingPlan {
                     Math.pow(e.clientY - mouseStartPosition.y, 2)
                 );
 
-                // If moved more than 10 pixels, consider it a drag
-                if (distance > 10) {
-                    this.isDragging = true;
-                    this.handleCounterRelease(student.id);
+                // If moved more than 5 pixels, consider it a drag
+                if (distance > 5) {
+                    if (!this.isDragging) {
+                        this.isDragging = true;
+                        this.handleCounterRelease(student.id);
+                    }
                 }
             });
 
@@ -771,7 +769,7 @@ class SeatingPlan {
         setTimeout(() => {
             this.isDragging = false;
             this.dragStartPosition = null;
-        }, 100);
+        }, 50);
     }
 
     handleDragOver(e) {
@@ -1076,11 +1074,6 @@ class SeatingPlan {
     }
 
     handleCounterPress(studentId) {
-        // Prevent counter changes during drag operations
-        if (this.isDragging) {
-            return;
-        }
-
         // Prevent multiple simultaneous presses for the same student
         if (this.longPressTimer || this.counterStartTime) {
             return;
