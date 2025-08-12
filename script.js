@@ -841,62 +841,129 @@ class SeatingPlan {
     }
 
     addRow() {
-        if (this.hasSeatedStudents()) {
-            if (!confirm('Es sind Schüler im Sitzplan platziert. Beim Hinzufügen einer Zeile werden alle Schüler zurück in die Schülerliste verschoben. Möchten Sie fortfahren?')) {
-                return;
-            }
-        }
-
-        // Move all students back to pool before changing grid
-        this.resetAllSeats();
+        // Save current seat assignments
+        const currentAssignments = this.getSeatAssignments();
+        
         this.gridRows++;
         this.createSeats();
+        
+        // Restore assignments that still fit
+        this.loadSeatAssignments(currentAssignments);
+        
+        this.renderStudentPool();
         this.saveCurrentClassState();
     }
 
     removeRow() {
         if (this.gridRows <= 1) return;
 
-        if (this.hasSeatedStudents()) {
-            if (!confirm('Es sind Schüler im Sitzplan platziert. Beim Entfernen einer Zeile werden alle Schüler zurück in die Schülerliste verschoben. Möchten Sie fortfahren?')) {
+        // Save current seat assignments
+        const currentAssignments = this.getSeatAssignments();
+        
+        // Calculate which seats will be removed
+        const newTotalSeats = (this.gridRows - 1) * this.gridColumns;
+        const removedStudents = [];
+        
+        // Find students that will be affected
+        currentAssignments.forEach((studentId, seatIndex) => {
+            if (seatIndex >= newTotalSeats) {
+                const student = this.students.find(s => s.id === studentId);
+                if (student) {
+                    removedStudents.push(student.firstName + ' ' + student.lastName);
+                }
+            }
+        });
+        
+        // Show confirmation if students will be moved
+        if (removedStudents.length > 0) {
+            const message = `Die folgenden Schüler werden zurück in die Schülerliste verschoben:\n\n${removedStudents.join('\n')}\n\nMöchten Sie fortfahren?`;
+            if (!confirm(message)) {
                 return;
             }
         }
-
-        // Move all students back to pool before changing grid
-        this.resetAllSeats();
+        
         this.gridRows--;
         this.createSeats();
+        
+        // Restore assignments that still fit
+        const filteredAssignments = new Map();
+        currentAssignments.forEach((studentId, seatIndex) => {
+            if (seatIndex < newTotalSeats) {
+                filteredAssignments.set(seatIndex, studentId);
+            }
+        });
+        
+        this.loadSeatAssignments(filteredAssignments);
+        this.renderStudentPool();
         this.saveCurrentClassState();
     }
 
     addColumn() {
-        if (this.hasSeatedStudents()) {
-            if (!confirm('Es sind Schüler im Sitzplan platziert. Beim Hinzufügen einer Spalte werden alle Schüler zurück in die Schülerliste verschoben. Möchten Sie fortfahren?')) {
-                return;
-            }
-        }
-
-        // Move all students back to pool before changing grid
-        this.resetAllSeats();
+        // Save current seat assignments
+        const currentAssignments = this.getSeatAssignments();
+        
+        // Calculate new seat positions (seats shift when columns are added)
+        const newAssignments = new Map();
+        
+        currentAssignments.forEach((studentId, oldSeatIndex) => {
+            const oldRow = Math.floor(oldSeatIndex / this.gridColumns);
+            const oldCol = oldSeatIndex % this.gridColumns;
+            const newSeatIndex = oldRow * (this.gridColumns + 1) + oldCol;
+            newAssignments.set(newSeatIndex, studentId);
+        });
+        
         this.gridColumns++;
         this.createSeats();
+        
+        // Restore assignments with new positions
+        this.loadSeatAssignments(newAssignments);
+        
+        this.renderStudentPool();
         this.saveCurrentClassState();
     }
 
     removeColumn() {
         if (this.gridColumns <= 1) return;
 
-        if (this.hasSeatedStudents()) {
-            if (!confirm('Es sind Schüler im Sitzplan platziert. Beim Entfernen einer Spalte werden alle Schüler zurück in die Schülerliste verschoben. Möchten Sie fortfahren?')) {
+        // Save current seat assignments
+        const currentAssignments = this.getSeatAssignments();
+        
+        // Find students that will be affected (those in the last column)
+        const removedStudents = [];
+        const newAssignments = new Map();
+        
+        currentAssignments.forEach((studentId, oldSeatIndex) => {
+            const oldRow = Math.floor(oldSeatIndex / this.gridColumns);
+            const oldCol = oldSeatIndex % this.gridColumns;
+            
+            if (oldCol === this.gridColumns - 1) {
+                // Student is in the last column, will be removed
+                const student = this.students.find(s => s.id === studentId);
+                if (student) {
+                    removedStudents.push(student.firstName + ' ' + student.lastName);
+                }
+            } else {
+                // Student can stay, calculate new position
+                const newSeatIndex = oldRow * (this.gridColumns - 1) + oldCol;
+                newAssignments.set(newSeatIndex, studentId);
+            }
+        });
+        
+        // Show confirmation if students will be moved
+        if (removedStudents.length > 0) {
+            const message = `Die folgenden Schüler werden zurück in die Schülerliste verschoben:\n\n${removedStudents.join('\n')}\n\nMöchten Sie fortfahren?`;
+            if (!confirm(message)) {
                 return;
             }
         }
-
-        // Move all students back to pool before changing grid
-        this.resetAllSeats();
+        
         this.gridColumns--;
         this.createSeats();
+        
+        // Restore assignments that still fit
+        this.loadSeatAssignments(newAssignments);
+        
+        this.renderStudentPool();
         this.saveCurrentClassState();
     }
 
