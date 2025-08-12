@@ -342,7 +342,12 @@ class SeatingPlan {
         const select = document.getElementById('classSelect');
         select.innerHTML = '<option value="">Klasse auswählen...</option>';
 
-        this.classes.forEach((classData, id) => {
+        // Convert classes Map to array and sort alphabetically by name
+        const sortedClasses = Array.from(this.classes.entries()).sort((a, b) => {
+            return a[1].name.localeCompare(b[1].name, 'de');
+        });
+
+        sortedClasses.forEach(([id, classData]) => {
             const option = document.createElement('option');
             option.value = id;
             option.textContent = classData.name;
