@@ -577,31 +577,19 @@ class SeatingPlan {
 
         // Add counter events (only for seated students)
         if (isSeated) {
-            // Mouse events for counter functionality
-            card.addEventListener('mousedown', (e) => {
-                if (e.target.closest('.student-card-actions')) return; // Don't trigger on edit button
+            let touchProcessed = false;
 
-                // Start counter press timer
-                this.handleCounterPress(student.id);
-            });
-
-            card.addEventListener('mouseup', (e) => {
-                if (e.target.closest('.student-card-actions')) return;
-
-                // Handle counter release
-                this.handleCounterRelease(student.id);
-            });
-
-            card.addEventListener('mouseleave', (e) => {
-                // Cancel counter press if mouse leaves the card
-                this.handleCounterRelease(student.id);
-            });
-
-            // Touch events for mobile
+            // Touch events for mobile (handle these first)
             card.addEventListener('touchstart', (e) => {
                 if (e.target.closest('.student-card-actions')) return;
 
+                touchProcessed = true;
                 this.handleCounterPress(student.id);
+                
+                // Reset flag after a short delay
+                setTimeout(() => {
+                    touchProcessed = false;
+                }, 100);
             });
 
             card.addEventListener('touchend', (e) => {
@@ -611,6 +599,30 @@ class SeatingPlan {
             });
 
             card.addEventListener('touchcancel', (e) => {
+                this.handleCounterRelease(student.id);
+            });
+
+            // Mouse events for counter functionality (only if not touch processed)
+            card.addEventListener('mousedown', (e) => {
+                if (e.target.closest('.student-card-actions')) return; // Don't trigger on edit button
+                if (touchProcessed) return; // Skip if touch was already processed
+
+                // Start counter press timer
+                this.handleCounterPress(student.id);
+            });
+
+            card.addEventListener('mouseup', (e) => {
+                if (e.target.closest('.student-card-actions')) return;
+                if (touchProcessed) return; // Skip if touch was already processed
+
+                // Handle counter release
+                this.handleCounterRelease(student.id);
+            });
+
+            card.addEventListener('mouseleave', (e) => {
+                if (touchProcessed) return; // Skip if touch was already processed
+
+                // Cancel counter press if mouse leaves the card
                 this.handleCounterRelease(student.id);
             });
         } else {
