@@ -4,6 +4,8 @@ class SeatingPlan {
         this.students = [];
         this.seats = [];
         this.draggedElement = null;
+        this.gridRows = 5;
+        this.gridColumns = 6;
         this.init();
     }
 
@@ -15,7 +17,14 @@ class SeatingPlan {
 
     createSeats() {
         const grid = document.getElementById('classroomGrid');
-        const seatCount = 30; // 6x5 grid
+        grid.innerHTML = '';
+        this.seats = [];
+        
+        // Update CSS grid layout
+        grid.style.gridTemplateColumns = `repeat(${this.gridColumns}, 1fr)`;
+        grid.style.gridTemplateRows = `repeat(${this.gridRows}, 1fr)`;
+        
+        const seatCount = this.gridRows * this.gridColumns;
         
         for (let i = 0; i < seatCount; i++) {
             const seat = document.createElement('div');
@@ -54,6 +63,23 @@ class SeatingPlan {
         document.getElementById('studentForm').addEventListener('submit', (e) => {
             e.preventDefault();
             this.addStudent();
+        });
+
+        // Grid control events
+        document.getElementById('addRow').addEventListener('click', () => {
+            this.addRow();
+        });
+
+        document.getElementById('removeRow').addEventListener('click', () => {
+            this.removeRow();
+        });
+
+        document.getElementById('addColumn').addEventListener('click', () => {
+            this.addColumn();
+        });
+
+        document.getElementById('removeColumn').addEventListener('click', () => {
+            this.removeColumn();
         });
 
         // Close modal on background click
@@ -249,6 +275,38 @@ class SeatingPlan {
             seat.element.innerHTML = `<span style="color: #8e8e93; font-size: 12px;">Platz ${seat.id + 1}</span>`;
         });
         this.renderStudentPool();
+    }
+
+    addRow() {
+        // Move all students back to pool before changing grid
+        this.resetAllSeats();
+        this.gridRows++;
+        this.createSeats();
+    }
+
+    removeRow() {
+        if (this.gridRows <= 1) return;
+        
+        // Move all students back to pool before changing grid
+        this.resetAllSeats();
+        this.gridRows--;
+        this.createSeats();
+    }
+
+    addColumn() {
+        // Move all students back to pool before changing grid
+        this.resetAllSeats();
+        this.gridColumns++;
+        this.createSeats();
+    }
+
+    removeColumn() {
+        if (this.gridColumns <= 1) return;
+        
+        // Move all students back to pool before changing grid
+        this.resetAllSeats();
+        this.gridColumns--;
+        this.createSeats();
     }
 }
 
