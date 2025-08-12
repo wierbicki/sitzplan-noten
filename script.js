@@ -495,10 +495,12 @@ class SeatingPlan {
 
         const avatar = document.createElement('div');
         avatar.className = 'student-avatar';
+        avatar.draggable = true; // Make avatar draggable
 
         if (student.photo) {
             const img = document.createElement('img');
             img.src = student.photo;
+            img.draggable = true; // Make image draggable
             avatar.appendChild(img);
         } else {
             const initials = student.firstName.charAt(0) + student.lastName.charAt(0);
@@ -562,6 +564,14 @@ class SeatingPlan {
         // Add drag events for all students (both in pool and seated)
         card.addEventListener('dragstart', this.handleDragStart.bind(this));
         card.addEventListener('dragend', this.handleDragEnd.bind(this));
+        
+        // Make sure drag events work on all child elements
+        avatar.addEventListener('dragstart', this.handleDragStart.bind(this));
+        avatar.addEventListener('dragend', this.handleDragEnd.bind(this));
+        name.addEventListener('dragstart', this.handleDragStart.bind(this));
+        name.addEventListener('dragend', this.handleDragEnd.bind(this));
+        counter.addEventListener('dragstart', this.handleDragStart.bind(this));
+        counter.addEventListener('dragend', this.handleDragEnd.bind(this));
 
         const isSeated = this.seats.some(seat => seat.student && seat.student.id === student.id);
 
@@ -614,13 +624,21 @@ class SeatingPlan {
     }
 
     handleDragStart(e) {
-        this.draggedElement = e.target;
-        e.target.classList.add('dragging');
-        e.dataTransfer.effectAllowed = 'move';
+        // Find the student card element (could be the card itself or a child)
+        const studentCard = e.target.closest('.student-card');
+        if (studentCard) {
+            this.draggedElement = studentCard;
+            studentCard.classList.add('dragging');
+            e.dataTransfer.effectAllowed = 'move';
+        }
     }
 
     handleDragEnd(e) {
-        e.target.classList.remove('dragging');
+        // Find the student card element (could be the card itself or a child)
+        const studentCard = e.target.closest('.student-card');
+        if (studentCard) {
+            studentCard.classList.remove('dragging');
+        }
         this.draggedElement = null;
     }
 
