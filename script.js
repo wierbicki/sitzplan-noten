@@ -60,6 +60,10 @@ class SeatingPlan {
             document.getElementById('studentModal').style.display = 'block';
         });
 
+        document.getElementById('moreOptions').addEventListener('click', () => {
+            this.toggleAdvancedControls();
+        });
+
         document.getElementById('cancelModal').addEventListener('click', () => {
             document.getElementById('studentModal').style.display = 'none';
             this.clearForm();
@@ -1060,6 +1064,19 @@ class SeatingPlan {
         };
         
         reader.readAsText(file);
+    }
+
+    toggleAdvancedControls() {
+        const advancedControls = document.getElementById('advancedControls');
+        const moreOptionsBtn = document.getElementById('moreOptions');
+        
+        if (advancedControls.style.display === 'none') {
+            advancedControls.style.display = 'block';
+            moreOptionsBtn.innerHTML = 'Weniger Optionen ▲';
+        } else {
+            advancedControls.style.display = 'none';
+            moreOptionsBtn.innerHTML = 'Mehr Optionen ▼';
+        }
     }
 }
 
