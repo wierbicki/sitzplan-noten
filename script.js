@@ -152,6 +152,17 @@ class SeatingPlan {
             this.switchClass(e.target.value);
         });
 
+        // Also handle clicks on the select element to ensure reload even with same value
+        document.getElementById('classSelect').addEventListener('click', (e) => {
+            // Small delay to ensure the value is updated
+            setTimeout(() => {
+                const selectedValue = e.target.value;
+                if (selectedValue && this.currentClassId !== selectedValue) {
+                    this.switchClass(selectedValue);
+                }
+            }, 10);
+        });
+
         document.getElementById('deleteClass').addEventListener('click', () => {
             this.deleteCurrentClass();
         });
@@ -271,11 +282,12 @@ class SeatingPlan {
         document.getElementById('classForm').reset();
     }
 
-    switchClass(classId) {
+    switchClass(classId, forceReload = false) {
         if (!classId || !this.classes.has(classId)) {
             this.currentClassId = null;
             this.students = [];
             this.studentCounters = new Map();
+            this.messageCounters = new Map();
             this.updateUI();
             return;
         }
@@ -285,7 +297,7 @@ class SeatingPlan {
             this.saveCurrentClassState();
         }
 
-        // Load new class
+        // Load class (even if it's the same one, to refresh the view)
         this.currentClassId = classId;
         const classData = this.classes.get(classId);
 
