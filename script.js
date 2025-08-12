@@ -654,6 +654,12 @@ class SeatingPlan {
     }
 
     addRow() {
+        if (this.hasSeatedStudents()) {
+            if (!confirm('Es sind Schüler im Sitzplan platziert. Beim Hinzufügen einer Zeile werden alle Schüler zurück in die Schülerliste verschoben. Möchten Sie fortfahren?')) {
+                return;
+            }
+        }
+        
         // Move all students back to pool before changing grid
         this.resetAllSeats();
         this.gridRows++;
@@ -664,6 +670,12 @@ class SeatingPlan {
     removeRow() {
         if (this.gridRows <= 1) return;
 
+        if (this.hasSeatedStudents()) {
+            if (!confirm('Es sind Schüler im Sitzplan platziert. Beim Entfernen einer Zeile werden alle Schüler zurück in die Schülerliste verschoben. Möchten Sie fortfahren?')) {
+                return;
+            }
+        }
+
         // Move all students back to pool before changing grid
         this.resetAllSeats();
         this.gridRows--;
@@ -672,6 +684,12 @@ class SeatingPlan {
     }
 
     addColumn() {
+        if (this.hasSeatedStudents()) {
+            if (!confirm('Es sind Schüler im Sitzplan platziert. Beim Hinzufügen einer Spalte werden alle Schüler zurück in die Schülerliste verschoben. Möchten Sie fortfahren?')) {
+                return;
+            }
+        }
+        
         // Move all students back to pool before changing grid
         this.resetAllSeats();
         this.gridColumns++;
@@ -682,11 +700,21 @@ class SeatingPlan {
     removeColumn() {
         if (this.gridColumns <= 1) return;
 
+        if (this.hasSeatedStudents()) {
+            if (!confirm('Es sind Schüler im Sitzplan platziert. Beim Entfernen einer Spalte werden alle Schüler zurück in die Schülerliste verschoben. Möchten Sie fortfahren?')) {
+                return;
+            }
+        }
+
         // Move all students back to pool before changing grid
         this.resetAllSeats();
         this.gridColumns--;
         this.createSeats();
         this.saveCurrentClassState();
+    }
+
+    hasSeatedStudents() {
+        return this.seats.some(seat => seat.student !== null);
     }
 
     editStudent(student) {
