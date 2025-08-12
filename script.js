@@ -152,15 +152,19 @@ class SeatingPlan {
             this.switchClass(e.target.value);
         });
 
-        // Also handle clicks on the select element to ensure reload even with same value
-        document.getElementById('classSelect').addEventListener('click', (e) => {
-            // Small delay to ensure the value is updated
-            setTimeout(() => {
-                const selectedValue = e.target.value;
-                if (selectedValue && this.currentClassId !== selectedValue) {
-                    this.switchClass(selectedValue);
-                }
-            }, 10);
+        // Handle direct selection to force reload even with same class
+        document.getElementById('classSelect').addEventListener('focus', (e) => {
+            e.target.dataset.oldValue = e.target.value;
+        });
+
+        document.getElementById('classSelect').addEventListener('blur', (e) => {
+            const newValue = e.target.value;
+            const oldValue = e.target.dataset.oldValue;
+            
+            // Always switch if a class is selected, even if it's the same
+            if (newValue && this.classes.has(newValue)) {
+                this.switchClass(newValue);
+            }
         });
 
         document.getElementById('deleteClass').addEventListener('click', () => {
@@ -292,12 +296,12 @@ class SeatingPlan {
             return;
         }
 
-        // Save current class state
+        // Save current class state before switching
         if (this.currentClassId && this.classes.has(this.currentClassId)) {
             this.saveCurrentClassState();
         }
 
-        // Load class (even if it's the same one, to refresh the view)
+        // Always load the selected class data completely
         this.currentClassId = classId;
         const classData = this.classes.get(classId);
 
@@ -372,10 +376,11 @@ class SeatingPlan {
             select.appendChild(option);
         });
 
-        // Set the selected value properly
-        const valueToSet = this.currentClassId || currentValue;
-        if (valueToSet && this.classes.has(valueToSet)) {
-            select.value = valueToSet;
+        // Always set the current class as selected
+        if (this.currentClassId && this.classes.has(this.currentClassId)) {
+            select.value = this.currentClassId;
+        } else if (currentValue && this.classes.has(currentValue)) {
+            select.value = currentValue;
         }
     }
 
