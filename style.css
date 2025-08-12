@@ -489,12 +489,13 @@ body {
     font-weight: 600;
     position: absolute;
     bottom: 4px;
-    left: 4px;
-    z-index: 10;
+    right: 4px;
+    z-index: 100;
     cursor: pointer;
     transition: all 0.2s ease;
     border: 1px solid rgba(255, 255, 255, 0.3);
     user-select: none;
+    pointer-events: auto;
 }
 
 .student-message-counter:hover {
