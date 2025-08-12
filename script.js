@@ -819,10 +819,10 @@ class SeatingPlan {
         
         if (sidebar.style.display === 'none') {
             sidebar.style.display = 'block';
-            toggleBtn.textContent = 'Schülerliste ausblenden';
+            toggleBtn.title = 'Schülerliste ausblenden';
         } else {
             sidebar.style.display = 'none';
-            toggleBtn.textContent = 'Schülerliste einblenden';
+            toggleBtn.title = 'Schülerliste einblenden';
         }
     }
 
@@ -832,11 +832,13 @@ class SeatingPlan {
         
         if (header.style.display === 'none') {
             header.style.display = 'flex';
-            toggleBtn.textContent = 'Header ausblenden';
+            toggleBtn.title = 'Header ausblenden';
+            toggleBtn.textContent = '⬆️';
             this.removeFloatingHeaderButton();
         } else {
             header.style.display = 'none';
-            toggleBtn.textContent = 'Header einblenden';
+            toggleBtn.title = 'Header einblenden';
+            toggleBtn.textContent = '⬇️';
             this.createFloatingHeaderButton();
         }
     }
