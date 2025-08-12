@@ -258,10 +258,10 @@ class SeatingPlan {
         this.classes.set(newClass.id, newClass);
         this.saveClasses();
         this.updateClassSelect();
-        
+
         // Switch to the new class
         this.switchClass(newClass.id);
-        
+
         document.getElementById('classModal').style.display = 'none';
         document.getElementById('classForm').reset();
     }
@@ -283,7 +283,7 @@ class SeatingPlan {
         // Load new class
         this.currentClassId = classId;
         const classData = this.classes.get(classId);
-        
+
         this.students = classData.students || [];
         this.studentCounters = new Map(classData.studentCounters || []);
         this.gridRows = classData.gridRows || 5;
@@ -295,7 +295,7 @@ class SeatingPlan {
         this.createSeats();
         this.loadSeatAssignments(classData.seatAssignments || new Map());
         this.updateUI();
-        
+
         // Update class selector
         document.getElementById('classSelect').value = classId;
         document.getElementById('deleteClass').style.display = this.classes.size > 1 ? 'inline-block' : 'none';
@@ -359,7 +359,7 @@ class SeatingPlan {
         if (confirm(`Möchten Sie die Klasse "${classData.name}" wirklich löschen?`)) {
             this.classes.delete(this.currentClassId);
             this.saveClasses();
-            
+
             // Switch to first available class
             const firstClassId = this.classes.keys().next().value;
             this.switchClass(firstClassId);
@@ -385,7 +385,7 @@ class SeatingPlan {
     updateGradeDisplay() {
         const toggleBtn = document.getElementById('toggleGrades');
         const gradeTableBtn = document.getElementById('showGradeTable');
-        
+
         if (this.showGrades) {
             toggleBtn.textContent = 'Zähler anzeigen';
             toggleBtn.style.background = '#34c759';
@@ -512,16 +512,16 @@ class SeatingPlan {
         // Add counter display
         const counter = document.createElement('div');
         counter.className = 'student-counter';
-        
+
         if (this.showGrades) {
             const grade = this.calculateGrade(student.id);
             counter.textContent = grade;
             counter.classList.add('grade-display');
-            
+
             // Add grade-specific color class
             const gradeValue = parseFloat(grade);
             counter.classList.remove('grade-1', 'grade-2', 'grade-3', 'grade-4', 'grade-5', 'grade-6');
-            
+
             if (gradeValue >= 1.0 && gradeValue <= 1.5) {
                 counter.classList.add('grade-1');
             } else if (gradeValue > 1.5 && gradeValue <= 2.5) {
@@ -560,17 +560,24 @@ class SeatingPlan {
         card.appendChild(counter);
 
         // Add drag events for all students (both in pool and seated)
-        card.addEventListener('dragstart', this.handleDragStart.bind(this));
+        card.addEventListener('dragstart', (e) => {
+            // Prevent drag if we're in the middle of a counter interaction
+            if (this.longPressTimer || this.isLongPress || this.counterPressTimeout) {
+                e.preventDefault();
+                return false;
+            }
+            this.handleDragStart(e);
+        });
         card.addEventListener('dragend', this.handleDragEnd.bind(this));
 
         const isSeated = this.seats.some(seat => seat.student && seat.student.id === student.id);
-        
+
         // Add counter events (only for seated students)
         if (isSeated) {
             // Mouse events for counter functionality
             card.addEventListener('mousedown', (e) => {
                 if (e.target.closest('.student-card-actions')) return; // Don't trigger on edit button
-                
+
                 // Only start counter press if not dragging
                 this.counterPressTimeout = setTimeout(() => {
                     if (!card.classList.contains('dragging')) {
@@ -582,13 +589,13 @@ class SeatingPlan {
 
             card.addEventListener('mouseup', (e) => {
                 if (e.target.closest('.student-card-actions')) return;
-                
+
                 // Clear timeout and handle counter release if we were in counter mode
                 if (this.counterPressTimeout) {
                     clearTimeout(this.counterPressTimeout);
                     this.counterPressTimeout = null;
                 }
-                
+
                 if (!card.classList.contains('dragging') && this.longPressTimer) {
                     e.preventDefault();
                     this.handleCounterRelease(student.id);
@@ -598,7 +605,7 @@ class SeatingPlan {
             // Touch events for mobile
             card.addEventListener('touchstart', (e) => {
                 if (e.target.closest('.student-card-actions')) return;
-                
+
                 this.counterPressTimeout = setTimeout(() => {
                     if (!card.classList.contains('dragging')) {
                         e.preventDefault();
@@ -609,12 +616,12 @@ class SeatingPlan {
 
             card.addEventListener('touchend', (e) => {
                 if (e.target.closest('.student-card-actions')) return;
-                
+
                 if (this.counterPressTimeout) {
                     clearTimeout(this.counterPressTimeout);
                     this.counterPressTimeout = null;
                 }
-                
+
                 if (!card.classList.contains('dragging') && this.longPressTimer) {
                     e.preventDefault();
                     this.handleCounterRelease(student.id);
@@ -684,7 +691,7 @@ class SeatingPlan {
         // If target seat is occupied, swap students
         if (targetSeat.student) {
             const targetStudent = targetSeat.student;
-            
+
             if (currentSeat) {
                 // Swap: move target student to current seat
                 currentSeat.student = targetStudent;
@@ -696,13 +703,13 @@ class SeatingPlan {
                 // Move target student back to pool
                 targetSeat.student = null;
                 targetSeat.element.classList.remove('occupied');
-                targetSeat.element.innerHTML = `<span style="color: #8e8e93; font-size: 12px;">Platz ${targetSeat.id + 1}</span>`;
+                targetSeat.element.innerHTML = '<span style="color: #8e8e93; font-size: 12px;">Platz ' + (targetSeat.id + 1) + '</span>';
             }
         } else if (currentSeat) {
             // Clear current seat
             currentSeat.student = null;
             currentSeat.element.classList.remove('occupied');
-            currentSeat.element.innerHTML = `<span style="color: #8e8e93; font-size: 12px;">Platz ${currentSeat.id + 1}</span>`;
+            currentSeat.element.innerHTML = '<span style="color: #8e8e93; font-size: 12px;">Platz ' + (currentSeat.id + 1) + '</span>';
         }
 
         // Assign dragged student to target seat
@@ -715,7 +722,7 @@ class SeatingPlan {
 
         // Update student pool
         this.renderStudentPool();
-        
+
         // Save state
         this.saveCurrentClassState();
     }
@@ -725,7 +732,7 @@ class SeatingPlan {
         if (seat) {
             seat.student = null;
             seat.element.classList.remove('occupied');
-            seat.element.innerHTML = `<span style="color: #8e8e93; font-size: 12px;">Platz ${seat.id + 1}</span>`;
+            seat.element.innerHTML = '<span style="color: #8e8e93; font-size: 12px;">Platz ' + (seat.id + 1) + '</span>';
         }
         this.renderStudentPool();
     }
@@ -734,7 +741,7 @@ class SeatingPlan {
         this.seats.forEach(seat => {
             seat.student = null;
             seat.element.classList.remove('occupied');
-            seat.element.innerHTML = `<span style="color: #8e8e93; font-size: 12px;">Platz ${seat.id + 1}</span>`;
+            seat.element.innerHTML = '<span style="color: #8e8e93; font-size: 12px;">Platz ' + (seat.id + 1) + '</span>';
         });
         this.studentCounters.clear(); // Clear counters as well
         this.renderStudentPool();
@@ -755,7 +762,7 @@ class SeatingPlan {
                 return;
             }
         }
-        
+
         // Move all students back to pool before changing grid
         this.resetAllSeats();
         this.gridRows++;
@@ -785,7 +792,7 @@ class SeatingPlan {
                 return;
             }
         }
-        
+
         // Move all students back to pool before changing grid
         this.resetAllSeats();
         this.gridColumns++;
@@ -861,7 +868,7 @@ class SeatingPlan {
 
     handleCounterPress(studentId) {
         this.isLongPress = false;
-        
+
         // Set timer for long press
         this.longPressTimer = setTimeout(() => {
             this.isLongPress = true;
@@ -908,11 +915,11 @@ class SeatingPlan {
                     const grade = this.calculateGrade(studentId);
                     counterElement.textContent = grade;
                     counterElement.classList.add('grade-display');
-                    
+
                     // Add grade-specific color class
                     const gradeValue = parseFloat(grade);
                     counterElement.classList.remove('grade-1', 'grade-2', 'grade-3', 'grade-4', 'grade-5', 'grade-6');
-                    
+
                     if (gradeValue >= 1.0 && gradeValue <= 1.5) {
                         counterElement.classList.add('grade-1');
                     } else if (gradeValue > 1.5 && gradeValue <= 2.5) {
@@ -938,7 +945,7 @@ class SeatingPlan {
     toggleSidebar() {
         const sidebar = document.querySelector('.sidebar');
         const toggleBtn = document.getElementById('toggleSidebar');
-        
+
         if (sidebar.style.display === 'none') {
             sidebar.style.display = 'block';
             toggleBtn.title = 'Schülerliste ausblenden';
@@ -951,7 +958,7 @@ class SeatingPlan {
     toggleHeader() {
         const header = document.querySelector('.header');
         const toggleBtn = document.getElementById('toggleHeader');
-        
+
         if (header.style.display === 'none') {
             header.style.display = 'flex';
             toggleBtn.title = 'Header ausblenden';
@@ -968,7 +975,7 @@ class SeatingPlan {
     createFloatingHeaderButton() {
         // Remove any existing floating button
         this.removeFloatingHeaderButton();
-        
+
         const floatingBtn = document.createElement('button');
         floatingBtn.className = 'floating-header-toggle';
         floatingBtn.id = 'floatingHeaderToggle';
@@ -977,7 +984,7 @@ class SeatingPlan {
         floatingBtn.addEventListener('click', () => {
             this.toggleHeader();
         });
-        
+
         document.body.appendChild(floatingBtn);
     }
 
@@ -991,7 +998,7 @@ class SeatingPlan {
     toggleGradeDisplay() {
         this.showGrades = !this.showGrades;
         this.updateGradeDisplay();
-        
+
         // Update all displays
         this.renderStudentPool();
         this.updateAllCounterDisplays();
@@ -1001,7 +1008,7 @@ class SeatingPlan {
     setStartingGrade(grade) {
         this.startingGrade = grade;
         this.updateStartingGradeButtons();
-        
+
         // Update all displays if grades are shown
         if (this.showGrades) {
             this.renderStudentPool();
@@ -1013,10 +1020,10 @@ class SeatingPlan {
     calculateGrade(studentId) {
         const counter = this.studentCounters.get(studentId) || 0;
         const grade = this.startingGrade - (counter * 0.5);
-        
+
         // Ensure grade stays within reasonable bounds (1.0 to 6.0)
         const clampedGrade = Math.max(1.0, Math.min(6.0, grade));
-        
+
         // Format grade to one decimal place
         return clampedGrade.toFixed(1);
     }
@@ -1061,14 +1068,14 @@ class SeatingPlan {
         // Create and download file
         const dataStr = JSON.stringify(exportData, null, 2);
         const dataBlob = new Blob([dataStr], { type: 'application/json' });
-        
+
         const link = document.createElement('a');
         link.href = URL.createObjectURL(dataBlob);
         link.download = `sitzplan_export_${new Date().toISOString().split('T')[0]}.json`;
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
-        
+
         alert('Daten erfolgreich exportiert!');
     }
 
@@ -1079,7 +1086,7 @@ class SeatingPlan {
         reader.onload = (e) => {
             try {
                 const importData = JSON.parse(e.target.result);
-                
+
                 // Validate import data
                 if (!importData.version || !importData.classes) {
                     throw new Error('Ungültiges Dateiformat');
@@ -1128,19 +1135,19 @@ class SeatingPlan {
                 // Update UI
                 this.updateClassSelect();
                 this.saveClasses();
-                
+
                 alert(`Import erfolgreich! ${importData.classes.length} Klasse(n) wurden importiert.`);
-                
+
                 // Clear file input
                 document.getElementById('importFile').value = '';
-                
+
             } catch (error) {
                 console.error('Import error:', error);
                 alert('Fehler beim Importieren der Datei: ' + error.message);
                 document.getElementById('importFile').value = '';
             }
         };
-        
+
         reader.readAsText(file);
     }
 
@@ -1151,7 +1158,7 @@ class SeatingPlan {
 
         // Collect all students with their grades
         const studentsWithGrades = [];
-        
+
         this.students.forEach(student => {
             const grade = this.calculateGrade(student.id);
             studentsWithGrades.push({
