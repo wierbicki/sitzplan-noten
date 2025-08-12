@@ -362,12 +362,14 @@ body {
     gap: 4px;
     z-index: 20;
     pointer-events: auto;
+    padding: 8px;
+    margin: -8px;
 }
 
 .seat .student-card-actions {
     top: -40px;
-    padding: 8px;
-    margin: -8px;
+    padding: 12px;
+    margin: -12px;
 }
 
 .student-card:hover .student-card-actions,
