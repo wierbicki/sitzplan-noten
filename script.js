@@ -12,7 +12,7 @@ class SeatingPlan {
         this.longPressTimer = null;
         this.isLongPress = false;
         this.longPressDelay = 500; // 500ms for long press
-        this.counterPressTimeout = null; // Timeout for distinguishing between drag and counter press
+        this.counterStartTime = null; // Track when counter press started
         this.showGrades = false; // Toggle for grade display
         this.startingGrade = 4.0; // Default starting grade
         this.init();
@@ -560,14 +560,7 @@ class SeatingPlan {
         card.appendChild(counter);
 
         // Add drag events for all students (both in pool and seated)
-        card.addEventListener('dragstart', (e) => {
-            // Prevent drag if we're in the middle of a counter interaction
-            if (this.longPressTimer || this.isLongPress || this.counterPressTimeout) {
-                e.preventDefault();
-                return false;
-            }
-            this.handleDragStart(e);
-        });
+        card.addEventListener('dragstart', this.handleDragStart.bind(this));
         card.addEventListener('dragend', this.handleDragEnd.bind(this));
 
         const isSeated = this.seats.some(seat => seat.student && seat.student.id === student.id);
@@ -578,61 +571,36 @@ class SeatingPlan {
             card.addEventListener('mousedown', (e) => {
                 if (e.target.closest('.student-card-actions')) return; // Don't trigger on edit button
 
-                // Only start counter press if not dragging
-                this.counterPressTimeout = setTimeout(() => {
-                    if (!card.classList.contains('dragging')) {
-                        e.preventDefault();
-                        this.handleCounterPress(student.id);
-                    }
-                }, 100);
+                // Start counter press timer
+                this.handleCounterPress(student.id);
             });
 
             card.addEventListener('mouseup', (e) => {
                 if (e.target.closest('.student-card-actions')) return;
 
-                // Clear timeout and handle counter release if we were in counter mode
-                if (this.counterPressTimeout) {
-                    clearTimeout(this.counterPressTimeout);
-                    this.counterPressTimeout = null;
-                }
+                // Handle counter release
+                this.handleCounterRelease(student.id);
+            });
 
-                if (!card.classList.contains('dragging') && this.longPressTimer) {
-                    e.preventDefault();
-                    this.handleCounterRelease(student.id);
-                }
+            card.addEventListener('mouseleave', (e) => {
+                // Cancel counter press if mouse leaves the card
+                this.handleCounterRelease(student.id);
             });
 
             // Touch events for mobile
             card.addEventListener('touchstart', (e) => {
                 if (e.target.closest('.student-card-actions')) return;
 
-                this.counterPressTimeout = setTimeout(() => {
-                    if (!card.classList.contains('dragging')) {
-                        e.preventDefault();
-                        this.handleCounterPress(student.id);
-                    }
-                }, 100);
+                this.handleCounterPress(student.id);
             });
 
             card.addEventListener('touchend', (e) => {
                 if (e.target.closest('.student-card-actions')) return;
 
-                if (this.counterPressTimeout) {
-                    clearTimeout(this.counterPressTimeout);
-                    this.counterPressTimeout = null;
-                }
-
-                if (!card.classList.contains('dragging') && this.longPressTimer) {
-                    e.preventDefault();
-                    this.handleCounterRelease(student.id);
-                }
+                this.handleCounterRelease(student.id);
             });
 
             card.addEventListener('touchcancel', (e) => {
-                if (this.counterPressTimeout) {
-                    clearTimeout(this.counterPressTimeout);
-                    this.counterPressTimeout = null;
-                }
                 this.handleCounterRelease(student.id);
             });
         } else {
@@ -868,6 +836,7 @@ class SeatingPlan {
 
     handleCounterPress(studentId) {
         this.isLongPress = false;
+        this.counterStartTime = Date.now();
 
         // Set timer for long press
         this.longPressTimer = setTimeout(() => {
@@ -883,12 +852,17 @@ class SeatingPlan {
             this.longPressTimer = null;
         }
 
-        // If it wasn't a long press, it's a short click - increment
-        if (!this.isLongPress) {
-            this.incrementCounter(studentId);
+        // If it wasn't a long press and wasn't a drag, it's a short click - increment
+        if (!this.isLongPress && this.counterStartTime) {
+            const pressDuration = Date.now() - this.counterStartTime;
+            // Only count as click if it was short and not a drag operation
+            if (pressDuration < this.longPressDelay) {
+                this.incrementCounter(studentId);
+            }
         }
 
         this.isLongPress = false;
+        this.counterStartTime = null;
     }
 
     incrementCounter(studentId) {
