@@ -29,6 +29,8 @@ body {
     gap: 15px;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
     border: 1px solid rgba(255, 255, 255, 0.2);
+    z-index: 1000;
+    position: relative;
 }
 
 .header-top {
@@ -259,6 +261,8 @@ body {
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
     border: 1px solid rgba(255, 255, 255, 0.2);
     transition: all 0.3s ease;
+    z-index: 1;
+    position: relative;
 }
 
 .sidebar h3 {
@@ -283,6 +287,8 @@ body {
     padding: 30px;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
     border: 1px solid rgba(255, 255, 255, 0.2);
+    z-index: 1;
+    position: relative;
 }
 
 .classroom-grid {
