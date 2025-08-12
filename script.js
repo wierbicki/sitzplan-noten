@@ -90,6 +90,10 @@ class SeatingPlan {
             this.deleteCurrentStudent();
         });
 
+        document.getElementById('toggleSidebar').addEventListener('click', () => {
+            this.toggleSidebar();
+        });
+
         // Close modal on background click
         document.getElementById('studentModal').addEventListener('click', (e) => {
             if (e.target === e.currentTarget) {
@@ -494,6 +498,19 @@ class SeatingPlan {
                 const count = this.studentCounters.get(studentId) || 0;
                 counterElement.textContent = count;
             }
+        }
+    }
+
+    toggleSidebar() {
+        const sidebar = document.querySelector('.sidebar');
+        const toggleBtn = document.getElementById('toggleSidebar');
+        
+        if (sidebar.style.display === 'none') {
+            sidebar.style.display = 'block';
+            toggleBtn.textContent = 'Schülerliste ausblenden';
+        } else {
+            sidebar.style.display = 'none';
+            toggleBtn.textContent = 'Schülerliste einblenden';
         }
     }
 }
