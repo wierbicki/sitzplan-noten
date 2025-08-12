@@ -9,6 +9,7 @@ class SeatingPlan {
         this.gridColumns = 6;
         this.currentEditingStudent = null;
         this.studentCounters = new Map(); // Store counters for each student
+        this.messageCounters = new Map(); // Store message counters for each student
         this.longPressTimer = null;
         this.isLongPress = false;
         this.longPressDelay = 500; // 500ms for long press
@@ -228,6 +229,7 @@ class SeatingPlan {
                 { id: Date.now() + Math.random() + 4, firstName: 'Paul', lastName: 'Wagner', photo: null }
             ],
             studentCounters: new Map(),
+            messageCounters: new Map(),
             seatAssignments: new Map(),
             gridRows: 5,
             gridColumns: 6,
@@ -250,6 +252,7 @@ class SeatingPlan {
             name: className,
             students: [],
             studentCounters: new Map(),
+            messageCounters: new Map(),
             seatAssignments: new Map(),
             gridRows: 5,
             gridColumns: 6,
@@ -288,6 +291,7 @@ class SeatingPlan {
 
         this.students = classData.students || [];
         this.studentCounters = new Map(classData.studentCounters || []);
+        this.messageCounters = new Map(classData.messageCounters || []);
         this.gridRows = classData.gridRows || 5;
         this.gridColumns = classData.gridColumns || 6;
         this.showGrades = classData.showGrades || false;
@@ -309,6 +313,7 @@ class SeatingPlan {
         const classData = this.classes.get(this.currentClassId);
         classData.students = this.students;
         classData.studentCounters = this.studentCounters;
+        classData.messageCounters = this.messageCounters;
         classData.seatAssignments = this.getSeatAssignments();
         classData.gridRows = this.gridRows;
         classData.gridColumns = this.gridColumns;
@@ -378,6 +383,7 @@ class SeatingPlan {
         const classesData = Array.from(this.classes.entries()).map(([id, classData]) => ({
             ...classData,
             studentCounters: Array.from(classData.studentCounters.entries()),
+            messageCounters: Array.from(classData.messageCounters.entries()),
             seatAssignments: Array.from(classData.seatAssignments.entries())
         }));
         localStorage.setItem('seatingPlan_classes', JSON.stringify(classesData));
@@ -599,6 +605,15 @@ class SeatingPlan {
             });
             actions.appendChild(deleteBtn);
         }
+        // Add message counter for seated students
+        if (isSeated) {
+            const messageCounter = document.createElement('div');
+            messageCounter.className = 'student-message-counter';
+            messageCounter.textContent = this.messageCounters.get(student.id) || 0;
+            messageCounter.title = 'Meldungen';
+            card.appendChild(messageCounter);
+        }
+
         card.appendChild(actions);
         card.appendChild(avatar);
         card.appendChild(name);
@@ -738,6 +753,44 @@ class SeatingPlan {
                 this.handleCounterRelease(student.id);
                 mouseStartPosition = null;
             });
+
+            // Message counter events (only for seated students)
+            const messageCounterElement = card.querySelector('.student-message-counter');
+            if (messageCounterElement) {
+                messageCounterElement.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    this.incrementMessageCounter(student.id);
+                });
+
+                messageCounterElement.addEventListener('contextmenu', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    this.decrementMessageCounter(student.id);
+                });
+
+                // Touch events for message counter
+                let messageTouchTimer = null;
+                messageCounterElement.addEventListener('touchstart', (e) => {
+                    e.stopPropagation();
+                    messageTouchTimer = setTimeout(() => {
+                        this.decrementMessageCounter(student.id);
+                    }, 500);
+                });
+
+                messageCounterElement.addEventListener('touchend', (e) => {
+                    e.stopPropagation();
+                    if (messageTouchTimer) {
+                        clearTimeout(messageTouchTimer);
+                        this.incrementMessageCounter(student.id);
+                    }
+                });
+
+                messageCounterElement.addEventListener('touchcancel', (e) => {
+                    if (messageTouchTimer) {
+                        clearTimeout(messageTouchTimer);
+                    }
+                });
+            }
         } else {
             // Double click to remove from seat (only for students in pool)
             card.addEventListener('dblclick', () => {
@@ -863,13 +916,16 @@ class SeatingPlan {
             seat.element.innerHTML = '<span style="color: #8e8e93; font-size: 12px;">' + (seat.id + 1) + '</span>';
         });
         this.studentCounters.clear(); // Clear counters as well
+        this.messageCounters.clear(); // Clear message counters as well
         this.renderStudentPool();
     }
 
     resetAllCounters() {
-        if (confirm('Möchten Sie wirklich alle Zähler in dieser Klasse zurücksetzen?')) {
+        if (confirm('Möchten Sie wirklich alle Zähler und Meldungen in dieser Klasse zurücksetzen?')) {
             this.studentCounters.clear();
+            this.messageCounters.clear();
             this.updateAllCounterDisplays();
+            this.updateAllMessageCounterDisplays();
             this.renderStudentPool();
             this.saveCurrentClassState();
         }
@@ -1052,8 +1108,9 @@ class SeatingPlan {
             // Remove from students array
             this.students = this.students.filter(s => s.id != studentId);
 
-            // Clear counter for this student
+            // Clear counters for this student
             this.studentCounters.delete(studentId);
+            this.messageCounters.delete(studentId);
 
             // Refresh displays
             this.renderStudentPool();
@@ -1139,6 +1196,21 @@ class SeatingPlan {
         this.saveCurrentClassState();
     }
 
+    incrementMessageCounter(studentId) {
+        const currentCount = this.messageCounters.get(studentId) || 0;
+        this.messageCounters.set(studentId, currentCount + 1);
+        this.updateMessageCounterDisplay(studentId);
+        this.saveCurrentClassState();
+    }
+
+    decrementMessageCounter(studentId) {
+        const currentCount = this.messageCounters.get(studentId) || 0;
+        const newCount = Math.max(0, currentCount - 1);
+        this.messageCounters.set(studentId, newCount);
+        this.updateMessageCounterDisplay(studentId);
+        this.saveCurrentClassState();
+    }
+
     updateCounterDisplay(studentId) {
         const seat = this.seats.find(s => s.student && s.student.id == studentId);
         if (seat) {
@@ -1171,6 +1243,17 @@ class SeatingPlan {
                     counterElement.textContent = count;
                     counterElement.classList.remove('grade-display', 'grade-1', 'grade-2', 'grade-3', 'grade-4', 'grade-5', 'grade-6');
                 }
+            }
+        }
+    }
+
+    updateMessageCounterDisplay(studentId) {
+        const seat = this.seats.find(s => s.student && s.student.id == studentId);
+        if (seat) {
+            const messageCounterElement = seat.element.querySelector('.student-message-counter');
+            if (messageCounterElement) {
+                const count = this.messageCounters.get(studentId) || 0;
+                messageCounterElement.textContent = count;
             }
         }
     }
@@ -1269,6 +1352,14 @@ class SeatingPlan {
         });
     }
 
+    updateAllMessageCounterDisplays() {
+        this.seats.forEach(seat => {
+            if (seat.student) {
+                this.updateMessageCounterDisplay(seat.student.id);
+            }
+        });
+    }
+
     exportData() {
         // Save current class state before exporting
         if (this.currentClassId) {
@@ -1289,6 +1380,7 @@ class SeatingPlan {
                 name: classData.name,
                 students: classData.students || [],
                 studentCounters: Array.from((classData.studentCounters || new Map()).entries()),
+                messageCounters: Array.from((classData.messageCounters || new Map()).entries()),
                 seatAssignments: Array.from((classData.seatAssignments || new Map()).entries()),
                 gridRows: classData.gridRows || 5,
                 gridColumns: classData.gridColumns || 6,
@@ -1347,6 +1439,7 @@ class SeatingPlan {
                         name: classData.name,
                         students: classData.students || [],
                         studentCounters: new Map(classData.studentCounters || []),
+                        messageCounters: new Map(classData.messageCounters || []),
                         seatAssignments: new Map(classData.seatAssignments || []),
                         gridRows: classData.gridRows || 5,
                         gridColumns: classData.gridColumns || 6,
