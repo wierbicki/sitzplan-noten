@@ -489,11 +489,11 @@ class SeatingPlan {
             return !this.seats.some(seat => seat.student && seat.student.id === student.id);
         });
 
-        // Sort alphabetically by last name, then first name
+        // Sort alphabetically by first name, then last name
         unassignedStudents.sort((a, b) => {
-            const lastNameCompare = a.lastName.localeCompare(b.lastName, 'de');
-            if (lastNameCompare !== 0) return lastNameCompare;
-            return a.firstName.localeCompare(b.firstName, 'de');
+            const firstNameCompare = a.firstName.localeCompare(b.firstName, 'de');
+            if (firstNameCompare !== 0) return firstNameCompare;
+            return a.lastName.localeCompare(b.lastName, 'de');
         });
 
         unassignedStudents.forEach(student => {
