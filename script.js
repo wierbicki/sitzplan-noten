@@ -577,52 +577,57 @@ class SeatingPlan {
 
         // Add counter events (only for seated students)
         if (isSeated) {
-            let touchProcessed = false;
+            let touchStarted = false;
+            let mouseStarted = false;
 
-            // Touch events for mobile (handle these first)
+            // Touch events for mobile devices
             card.addEventListener('touchstart', (e) => {
                 if (e.target.closest('.student-card-actions')) return;
-
-                touchProcessed = true;
-                this.handleCounterPress(student.id);
                 
-                // Reset flag after a short delay
-                setTimeout(() => {
-                    touchProcessed = false;
-                }, 100);
+                // Prevent mouse events from firing
+                e.preventDefault();
+                touchStarted = true;
+                mouseStarted = false;
+                
+                this.handleCounterPress(student.id);
             });
 
             card.addEventListener('touchend', (e) => {
                 if (e.target.closest('.student-card-actions')) return;
-
+                if (!touchStarted) return;
+                
+                e.preventDefault();
+                touchStarted = false;
                 this.handleCounterRelease(student.id);
             });
 
             card.addEventListener('touchcancel', (e) => {
+                if (!touchStarted) return;
+                touchStarted = false;
                 this.handleCounterRelease(student.id);
             });
 
-            // Mouse events for counter functionality (only if not touch processed)
+            // Mouse events for desktop (only if no touch was started)
             card.addEventListener('mousedown', (e) => {
-                if (e.target.closest('.student-card-actions')) return; // Don't trigger on edit button
-                if (touchProcessed) return; // Skip if touch was already processed
-
-                // Start counter press timer
+                if (e.target.closest('.student-card-actions')) return;
+                if (touchStarted) return; // Skip if touch is active
+                
+                mouseStarted = true;
                 this.handleCounterPress(student.id);
             });
 
             card.addEventListener('mouseup', (e) => {
                 if (e.target.closest('.student-card-actions')) return;
-                if (touchProcessed) return; // Skip if touch was already processed
-
-                // Handle counter release
+                if (!mouseStarted || touchStarted) return;
+                
+                mouseStarted = false;
                 this.handleCounterRelease(student.id);
             });
 
             card.addEventListener('mouseleave', (e) => {
-                if (touchProcessed) return; // Skip if touch was already processed
-
-                // Cancel counter press if mouse leaves the card
+                if (!mouseStarted || touchStarted) return;
+                
+                mouseStarted = false;
                 this.handleCounterRelease(student.id);
             });
         } else {
@@ -865,6 +870,11 @@ class SeatingPlan {
     }
 
     handleCounterPress(studentId) {
+        // Prevent multiple simultaneous presses for the same student
+        if (this.longPressTimer || this.counterStartTime) {
+            return;
+        }
+
         this.isLongPress = false;
         this.counterStartTime = Date.now();
 
@@ -876,14 +886,19 @@ class SeatingPlan {
     }
 
     handleCounterRelease(studentId) {
+        // Only process if there was actually a press started
+        if (!this.counterStartTime) {
+            return;
+        }
+
         // Clear the timer
         if (this.longPressTimer) {
             clearTimeout(this.longPressTimer);
             this.longPressTimer = null;
         }
 
-        // If it wasn't a long press and wasn't a drag, it's a short click - increment
-        if (!this.isLongPress && this.counterStartTime) {
+        // If it wasn't a long press, it's a short click - increment
+        if (!this.isLongPress) {
             const pressDuration = Date.now() - this.counterStartTime;
             // Only count as click if it was short and not a drag operation
             if (pressDuration < this.longPressDelay) {
