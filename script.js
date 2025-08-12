@@ -557,6 +557,9 @@ class SeatingPlan {
             counter.classList.remove('grade-display', 'grade-1', 'grade-2', 'grade-3', 'grade-4', 'grade-5', 'grade-6');
         }
 
+        // Check if student is seated (define before using)
+        const isSeated = this.seats.some(seat => seat.student && seat.student.id === student.id);
+
         // Add edit button
         const actions = document.createElement('div');
         actions.className = 'student-card-actions';
@@ -612,8 +615,6 @@ class SeatingPlan {
         name.addEventListener('dragend', this.handleDragEnd.bind(this));
         counter.addEventListener('dragstart', this.handleDragStart.bind(this));
         counter.addEventListener('dragend', this.handleDragEnd.bind(this));
-
-        const isSeated = this.seats.some(seat => seat.student && seat.student.id === student.id);
 
         // Add counter events (only for seated students)
         if (isSeated) {
