@@ -571,6 +571,31 @@ class SeatingPlan {
         });
 
         actions.appendChild(editBtn);
+
+        // Add move to pool button for seated students
+        if (isSeated) {
+            const moveBtn = document.createElement('button');
+            moveBtn.className = 'btn-edit';
+            moveBtn.innerHTML = '↩';
+            moveBtn.title = 'Zur Schülerliste';
+            moveBtn.style.background = '#34c759';
+            moveBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.moveStudentToPool(student.id);
+            });
+            actions.appendChild(moveBtn);
+
+            const deleteBtn = document.createElement('button');
+            deleteBtn.className = 'btn-edit';
+            deleteBtn.innerHTML = '✖';
+            deleteBtn.title = 'Löschen';
+            deleteBtn.style.background = '#ff3b30';
+            deleteBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.deleteStudentCompletely(student.id);
+            });
+            actions.appendChild(deleteBtn);
+        }
         card.appendChild(actions);
         card.appendChild(avatar);
         card.appendChild(name);
@@ -998,16 +1023,40 @@ class SeatingPlan {
     deleteCurrentStudent() {
         if (!this.currentEditingStudent) return;
 
-        // Remove from any seat (but keep in students array)
-        this.removeStudentFromSeat(this.currentEditingStudent.id);
-
-        // Clear counter for this student
-        this.studentCounters.delete(this.currentEditingStudent.id);
+        // Remove student completely
+        this.deleteStudentCompletely(this.currentEditingStudent.id);
 
         // Close modal and refresh
         document.getElementById('studentModal').style.display = 'none';
         this.clearForm();
         this.renderStudentPool();
+    }
+
+    moveStudentToPool(studentId) {
+        // Only remove from seat, keep in students array
+        this.removeStudentFromSeat(studentId);
+        this.renderStudentPool();
+        this.saveCurrentClassState();
+    }
+
+    deleteStudentCompletely(studentId) {
+        const student = this.students.find(s => s.id == studentId);
+        if (!student) return;
+
+        if (confirm(`Möchten Sie ${student.firstName} ${student.lastName} wirklich komplett löschen?`)) {
+            // Remove from any seat
+            this.removeStudentFromSeat(studentId);
+
+            // Remove from students array
+            this.students = this.students.filter(s => s.id != studentId);
+
+            // Clear counter for this student
+            this.studentCounters.delete(studentId);
+
+            // Refresh displays
+            this.renderStudentPool();
+            this.saveCurrentClassState();
+        }
     }
 
     updateStudentEverywhere(student) {
