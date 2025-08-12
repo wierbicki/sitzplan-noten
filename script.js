@@ -1234,12 +1234,18 @@ class SeatingPlan {
 
         // Convert classes Map to exportable format
         this.classes.forEach((classData, id) => {
+            // If this is the current class, get the most recent seat assignments
+            let seatAssignments = classData.seatAssignments || new Map();
+            if (id === this.currentClassId) {
+                seatAssignments = this.getSeatAssignments();
+            }
+
             const exportClass = {
                 id: id,
                 name: classData.name,
                 students: classData.students || [],
                 studentCounters: Array.from((classData.studentCounters || new Map()).entries()),
-                seatAssignments: Array.from((classData.seatAssignments || new Map()).entries()),
+                seatAssignments: Array.from(seatAssignments.entries()),
                 gridRows: classData.gridRows || 5,
                 gridColumns: classData.gridColumns || 6,
                 showGrades: classData.showGrades || false,
