@@ -572,6 +572,21 @@ body {
 
     .controls {
         flex-direction: column;
+        gap: 15px;
+    }
+
+    .primary-controls {
+        justify-content: center;
+        flex-wrap: wrap;
+    }
+
+    .dropdown-content {
+        right: auto;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 90vw;
+        max-width: 350px;
+        min-width: 300px;
     }
 
     .grid-controls {
@@ -586,5 +601,15 @@ body {
         flex-direction: column;
         gap: 15px;
         text-align: center;
+    }
+
+    .header-top {
+        flex-direction: column;
+        text-align: center;
+    }
+
+    .class-controls {
+        justify-content: center;
+        flex-wrap: wrap;
     }
 }
