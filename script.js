@@ -66,7 +66,9 @@ class SeatingPlan {
         });
 
         document.getElementById('resetSeats').addEventListener('click', () => {
-            this.resetAllSeats();
+            if (confirm('Möchten Sie wirklich alle Plätze zurücksetzen? Alle Schüler werden zurück in die Schülerliste verschoben.')) {
+                this.resetAllSeats();
+            }
         });
 
         document.getElementById('resetCounters').addEventListener('click', () => {
