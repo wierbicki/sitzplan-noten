@@ -302,8 +302,8 @@ class SeatingPlan {
         this.loadSeatAssignments(classData.seatAssignments || new Map());
         this.updateUI();
 
-        // Update class selector
-        document.getElementById('classSelect').value = classId;
+        // Update class selector and UI
+        this.updateClassSelect();
         document.getElementById('deleteClass').style.display = this.classes.size > 1 ? 'inline-block' : 'none';
     }
 
@@ -345,6 +345,7 @@ class SeatingPlan {
 
     updateClassSelect() {
         const select = document.getElementById('classSelect');
+        const currentValue = select.value;
         select.innerHTML = '<option value="">Klasse auswählen...</option>';
 
         // Convert classes Map to array and sort alphabetically by name
@@ -359,8 +360,10 @@ class SeatingPlan {
             select.appendChild(option);
         });
 
-        if (this.currentClassId) {
-            select.value = this.currentClassId;
+        // Set the selected value properly
+        const valueToSet = this.currentClassId || currentValue;
+        if (valueToSet && this.classes.has(valueToSet)) {
+            select.value = valueToSet;
         }
     }
 
