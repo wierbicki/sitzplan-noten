@@ -240,9 +240,27 @@ class SeatingPlan {
             const grade = this.calculateGrade(student.id);
             counter.textContent = grade;
             counter.classList.add('grade-display');
+            
+            // Add grade-specific color class
+            const gradeValue = parseFloat(grade);
+            counter.classList.remove('grade-1', 'grade-2', 'grade-3', 'grade-4', 'grade-5', 'grade-6');
+            
+            if (gradeValue >= 1.0 && gradeValue <= 1.5) {
+                counter.classList.add('grade-1');
+            } else if (gradeValue > 1.5 && gradeValue <= 2.5) {
+                counter.classList.add('grade-2');
+            } else if (gradeValue > 2.5 && gradeValue <= 3.5) {
+                counter.classList.add('grade-3');
+            } else if (gradeValue > 3.5 && gradeValue <= 4.5) {
+                counter.classList.add('grade-4');
+            } else if (gradeValue > 4.5 && gradeValue <= 5.5) {
+                counter.classList.add('grade-5');
+            } else {
+                counter.classList.add('grade-6');
+            }
         } else {
             counter.textContent = this.studentCounters.get(student.id) || 0;
-            counter.classList.remove('grade-display');
+            counter.classList.remove('grade-display', 'grade-1', 'grade-2', 'grade-3', 'grade-4', 'grade-5', 'grade-6');
         }
 
         // Add edit button
@@ -521,10 +539,28 @@ class SeatingPlan {
                     const grade = this.calculateGrade(studentId);
                     counterElement.textContent = grade;
                     counterElement.classList.add('grade-display');
+                    
+                    // Add grade-specific color class
+                    const gradeValue = parseFloat(grade);
+                    counterElement.classList.remove('grade-1', 'grade-2', 'grade-3', 'grade-4', 'grade-5', 'grade-6');
+                    
+                    if (gradeValue >= 1.0 && gradeValue <= 1.5) {
+                        counterElement.classList.add('grade-1');
+                    } else if (gradeValue > 1.5 && gradeValue <= 2.5) {
+                        counterElement.classList.add('grade-2');
+                    } else if (gradeValue > 2.5 && gradeValue <= 3.5) {
+                        counterElement.classList.add('grade-3');
+                    } else if (gradeValue > 3.5 && gradeValue <= 4.5) {
+                        counterElement.classList.add('grade-4');
+                    } else if (gradeValue > 4.5 && gradeValue <= 5.5) {
+                        counterElement.classList.add('grade-5');
+                    } else {
+                        counterElement.classList.add('grade-6');
+                    }
                 } else {
                     const count = this.studentCounters.get(studentId) || 0;
                     counterElement.textContent = count;
-                    counterElement.classList.remove('grade-display');
+                    counterElement.classList.remove('grade-display', 'grade-1', 'grade-2', 'grade-3', 'grade-4', 'grade-5', 'grade-6');
                 }
             }
         }

@@ -300,11 +300,43 @@ body {
 }
 
 .student-counter.grade-display {
-    background: #34c759;
-    width: 28px;
-    height: 28px;
-    font-size: 10px;
-    border-radius: 6px;
+    width: 36px;
+    height: 36px;
+    font-size: 14px;
+    font-weight: 700;
+    border-radius: 8px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.student-counter.grade-1 {
+    background: linear-gradient(135deg, #34c759, #30d158);
+    color: white;
+}
+
+.student-counter.grade-2 {
+    background: linear-gradient(135deg, #32d74b, #64d2ff);
+    color: white;
+}
+
+.student-counter.grade-3 {
+    background: linear-gradient(135deg, #ffd60a, #ff9f0a);
+    color: white;
+}
+
+.student-counter.grade-4 {
+    background: linear-gradient(135deg, #ff9f0a, #ff6b35);
+    color: white;
+}
+
+.student-counter.grade-5 {
+    background: linear-gradient(135deg, #ff6b35, #ff453a);
+    color: white;
+}
+
+.student-counter.grade-6 {
+    background: linear-gradient(135deg, #ff453a, #d70015);
+    color: white;
 }
 
 .modal {
