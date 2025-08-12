@@ -410,6 +410,18 @@ body {
     overflow: hidden;
 }
 
+.seat .student-avatar {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: auto;
+    height: auto;
+    border-radius: 12px;
+    margin-bottom: 0;
+}
+
 .student-avatar img {
     width: 100%;
     height: 100%;
@@ -417,11 +429,31 @@ body {
     border-radius: 50%;
 }
 
+.seat .student-avatar img {
+    border-radius: 12px;
+}
+
 .student-name {
     font-size: 12px;
     font-weight: 500;
     color: #1d1d1f;
     line-height: 1.2;
+}
+
+.seat .student-name {
+    position: absolute;
+    bottom: 8px;
+    left: 8px;
+    right: 8px;
+    font-weight: 600;
+    color: white;
+    text-align: center;
+    background: rgba(0, 0, 0, 0.6);
+    border-radius: 6px;
+    padding: 4px 8px;
+    z-index: 10;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+    margin-bottom: 0;
 }
 
 .student-counter {
