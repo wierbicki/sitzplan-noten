@@ -69,6 +69,10 @@ class SeatingPlan {
             this.resetAllSeats();
         });
 
+        document.getElementById('resetCounters').addEventListener('click', () => {
+            this.resetAllCounters();
+        });
+
         document.getElementById('studentForm').addEventListener('submit', (e) => {
             e.preventDefault();
             this.addStudent();
@@ -632,6 +636,15 @@ class SeatingPlan {
         });
         this.studentCounters.clear(); // Clear counters as well
         this.renderStudentPool();
+    }
+
+    resetAllCounters() {
+        if (confirm('Möchten Sie wirklich alle Zähler in dieser Klasse zurücksetzen?')) {
+            this.studentCounters.clear();
+            this.updateAllCounterDisplays();
+            this.renderStudentPool();
+            this.saveCurrentClassState();
+        }
     }
 
     addRow() {
