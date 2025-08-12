@@ -156,6 +156,20 @@ class SeatingPlan {
             this.importData(e.target.files[0]);
         });
 
+        // Dropdown menu functionality
+        document.getElementById('moreOptions').addEventListener('click', (e) => {
+            e.stopPropagation();
+            const dropdown = document.getElementById('dropdownContent');
+            dropdown.classList.toggle('show');
+        });
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.dropdown-menu')) {
+                document.getElementById('dropdownContent').classList.remove('show');
+            }
+        });
+
         // Close modal on background click
         document.getElementById('studentModal').addEventListener('click', (e) => {
             if (e.target === e.currentTarget) {
