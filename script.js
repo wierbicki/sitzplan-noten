@@ -35,6 +35,13 @@ class SeatingPlan {
         // Update CSS grid layout
         grid.style.gridTemplateColumns = `repeat(${this.gridColumns}, 1fr)`;
         grid.style.gridTemplateRows = `repeat(${this.gridRows}, 1fr)`;
+        
+        // Calculate dynamic height based on number of rows
+        // Each seat needs minimum 80px + 15px gap, with some padding
+        const minSeatHeight = 80;
+        const gap = 15;
+        const calculatedHeight = (this.gridRows * minSeatHeight) + ((this.gridRows - 1) * gap) + 60; // 60px for padding
+        grid.style.height = `${Math.max(300, calculatedHeight)}px`;
 
         const seatCount = this.gridRows * this.gridColumns;
 
