@@ -101,7 +101,11 @@ class SeatingPlan {
         });
 
         document.getElementById('deleteStudent').addEventListener('click', () => {
-            this.deleteCurrentStudent();
+            this.deleteStudentCompletely();
+        });
+
+        document.getElementById('moveToPool').addEventListener('click', () => {
+            this.moveStudentToPool();
         });
 
         document.getElementById('toggleSidebar').addEventListener('click', () => {
@@ -476,6 +480,7 @@ class SeatingPlan {
         document.getElementById('studentForm').reset();
         this.currentEditingStudent = null;
         document.getElementById('deleteStudent').style.display = 'none';
+        document.getElementById('moveToPool').style.display = 'none';
         document.getElementById('submitButton').textContent = 'Hinzufügen';
         document.querySelector('.modal-content h3').textContent = 'Neuen Schüler hinzufügen';
     }
@@ -579,7 +584,7 @@ class SeatingPlan {
         // Add drag events for all students (both in pool and seated)
         card.addEventListener('dragstart', this.handleDragStart.bind(this));
         card.addEventListener('dragend', this.handleDragEnd.bind(this));
-        
+
         // Make sure drag events work on all child elements
         avatar.addEventListener('dragstart', this.handleDragStart.bind(this));
         avatar.addEventListener('dragend', this.handleDragEnd.bind(this));
@@ -600,16 +605,16 @@ class SeatingPlan {
             // Touch events for mobile devices
             card.addEventListener('touchstart', (e) => {
                 if (e.target.closest('.student-card-actions')) return;
-                
+
                 // Prevent mouse events from firing
                 e.preventDefault();
                 touchStarted = true;
                 mouseStarted = false;
-                touchStartPosition = { 
-                    x: e.touches[0].clientX, 
-                    y: e.touches[0].clientY 
+                touchStartPosition = {
+                    x: e.touches[0].clientX,
+                    y: e.touches[0].clientY
                 };
-                
+
                 // Small delay to detect if this becomes a drag
                 setTimeout(() => {
                     if (touchStarted && !this.isDragging) {
@@ -620,16 +625,16 @@ class SeatingPlan {
 
             card.addEventListener('touchmove', (e) => {
                 if (!touchStarted || !touchStartPosition) return;
-                
-                const currentPos = { 
-                    x: e.touches[0].clientX, 
-                    y: e.touches[0].clientY 
+
+                const currentPos = {
+                    x: e.touches[0].clientX,
+                    y: e.touches[0].clientY
                 };
                 const distance = Math.sqrt(
-                    Math.pow(currentPos.x - touchStartPosition.x, 2) + 
+                    Math.pow(currentPos.x - touchStartPosition.x, 2) +
                     Math.pow(currentPos.y - touchStartPosition.y, 2)
                 );
-                
+
                 // If moved more than 10 pixels, consider it a drag
                 if (distance > 10) {
                     this.isDragging = true;
@@ -640,15 +645,15 @@ class SeatingPlan {
             card.addEventListener('touchend', (e) => {
                 if (e.target.closest('.student-card-actions')) return;
                 if (!touchStarted) return;
-                
+
                 e.preventDefault();
                 touchStarted = false;
-                
+
                 // Only handle counter release if not dragging
                 if (!this.isDragging) {
                     this.handleCounterRelease(student.id);
                 }
-                
+
                 touchStartPosition = null;
             });
 
@@ -663,10 +668,10 @@ class SeatingPlan {
             card.addEventListener('mousedown', (e) => {
                 if (e.target.closest('.student-card-actions')) return;
                 if (touchStarted) return; // Skip if touch is active
-                
+
                 mouseStarted = true;
                 mouseStartPosition = { x: e.clientX, y: e.clientY };
-                
+
                 // Small delay to detect if this becomes a drag
                 setTimeout(() => {
                     if (mouseStarted && !this.isDragging) {
@@ -677,12 +682,12 @@ class SeatingPlan {
 
             card.addEventListener('mousemove', (e) => {
                 if (!mouseStarted || !mouseStartPosition || touchStarted) return;
-                
+
                 const distance = Math.sqrt(
-                    Math.pow(e.clientX - mouseStartPosition.x, 2) + 
+                    Math.pow(e.clientX - mouseStartPosition.x, 2) +
                     Math.pow(e.clientY - mouseStartPosition.y, 2)
                 );
-                
+
                 // If moved more than 10 pixels, consider it a drag
                 if (distance > 10) {
                     this.isDragging = true;
@@ -693,20 +698,20 @@ class SeatingPlan {
             card.addEventListener('mouseup', (e) => {
                 if (e.target.closest('.student-card-actions')) return;
                 if (!mouseStarted || touchStarted) return;
-                
+
                 mouseStarted = false;
-                
+
                 // Only handle counter release if not dragging
                 if (!this.isDragging) {
                     this.handleCounterRelease(student.id);
                 }
-                
+
                 mouseStartPosition = null;
             });
 
             card.addEventListener('mouseleave', (e) => {
                 if (!mouseStarted || touchStarted) return;
-                
+
                 mouseStarted = false;
                 this.handleCounterRelease(student.id);
                 mouseStartPosition = null;
@@ -740,7 +745,7 @@ class SeatingPlan {
             studentCard.classList.remove('dragging');
         }
         this.draggedElement = null;
-        
+
         // Reset drag state after a small delay to ensure all events are processed
         setTimeout(() => {
             this.isDragging = false;
@@ -851,13 +856,13 @@ class SeatingPlan {
     addRow() {
         // Save current seat assignments
         const currentAssignments = this.getSeatAssignments();
-        
+
         this.gridRows++;
         this.createSeats();
-        
+
         // Restore assignments that still fit
         this.loadSeatAssignments(currentAssignments);
-        
+
         this.renderStudentPool();
         this.saveCurrentClassState();
     }
@@ -867,11 +872,11 @@ class SeatingPlan {
 
         // Save current seat assignments
         const currentAssignments = this.getSeatAssignments();
-        
+
         // Calculate which seats will be removed
         const newTotalSeats = (this.gridRows - 1) * this.gridColumns;
         const removedStudents = [];
-        
+
         // Find students that will be affected
         currentAssignments.forEach((studentId, seatIndex) => {
             if (seatIndex >= newTotalSeats) {
@@ -881,7 +886,7 @@ class SeatingPlan {
                 }
             }
         });
-        
+
         // Show confirmation if students will be moved
         if (removedStudents.length > 0) {
             const message = `Die folgenden Schüler werden zurück in die Schülerliste verschoben:\n\n${removedStudents.join('\n')}\n\nMöchten Sie fortfahren?`;
@@ -889,10 +894,10 @@ class SeatingPlan {
                 return;
             }
         }
-        
+
         this.gridRows--;
         this.createSeats();
-        
+
         // Restore assignments that still fit
         const filteredAssignments = new Map();
         currentAssignments.forEach((studentId, seatIndex) => {
@@ -900,7 +905,7 @@ class SeatingPlan {
                 filteredAssignments.set(seatIndex, studentId);
             }
         });
-        
+
         this.loadSeatAssignments(filteredAssignments);
         this.renderStudentPool();
         this.saveCurrentClassState();
@@ -909,23 +914,23 @@ class SeatingPlan {
     addColumn() {
         // Save current seat assignments
         const currentAssignments = this.getSeatAssignments();
-        
+
         // Calculate new seat positions (seats shift when columns are added)
         const newAssignments = new Map();
-        
+
         currentAssignments.forEach((studentId, oldSeatIndex) => {
             const oldRow = Math.floor(oldSeatIndex / this.gridColumns);
             const oldCol = oldSeatIndex % this.gridColumns;
             const newSeatIndex = oldRow * (this.gridColumns + 1) + oldCol;
             newAssignments.set(newSeatIndex, studentId);
         });
-        
+
         this.gridColumns++;
         this.createSeats();
-        
+
         // Restore assignments with new positions
         this.loadSeatAssignments(newAssignments);
-        
+
         this.renderStudentPool();
         this.saveCurrentClassState();
     }
@@ -935,15 +940,15 @@ class SeatingPlan {
 
         // Save current seat assignments
         const currentAssignments = this.getSeatAssignments();
-        
+
         // Find students that will be affected (those in the last column)
         const removedStudents = [];
         const newAssignments = new Map();
-        
+
         currentAssignments.forEach((studentId, oldSeatIndex) => {
             const oldRow = Math.floor(oldSeatIndex / this.gridColumns);
             const oldCol = oldSeatIndex % this.gridColumns;
-            
+
             if (oldCol === this.gridColumns - 1) {
                 // Student is in the last column, will be removed
                 const student = this.students.find(s => s.id === studentId);
@@ -956,7 +961,7 @@ class SeatingPlan {
                 newAssignments.set(newSeatIndex, studentId);
             }
         });
-        
+
         // Show confirmation if students will be moved
         if (removedStudents.length > 0) {
             const message = `Die folgenden Schüler werden zurück in die Schülerliste verschoben:\n\n${removedStudents.join('\n')}\n\nMöchten Sie fortfahren?`;
@@ -964,13 +969,13 @@ class SeatingPlan {
                 return;
             }
         }
-        
+
         this.gridColumns--;
         this.createSeats();
-        
+
         // Restore assignments that still fit
         this.loadSeatAssignments(newAssignments);
-        
+
         this.renderStudentPool();
         this.saveCurrentClassState();
     }
@@ -988,6 +993,7 @@ class SeatingPlan {
 
         // Update modal for edit mode
         document.getElementById('deleteStudent').style.display = 'inline-block';
+        document.getElementById('moveToPool').style.display = 'inline-block';
         document.getElementById('submitButton').textContent = 'Aktualisieren';
         document.querySelector('.modal-content h3').textContent = 'Schüler bearbeiten';
 
@@ -995,19 +1001,40 @@ class SeatingPlan {
         document.getElementById('studentModal').style.display = 'block';
     }
 
-    deleteCurrentStudent() {
+    deleteStudentCompletely() {
         if (!this.currentEditingStudent) return;
 
-        // Remove from any seat (but keep in students array)
-        this.removeStudentFromSeat(this.currentEditingStudent.id);
+        const studentId = this.currentEditingStudent.id;
+
+        // Remove from any seat
+        this.removeStudentFromSeat(studentId);
+
+        // Remove from the students array
+        this.students = this.students.filter(s => s.id !== studentId);
 
         // Clear counter for this student
-        this.studentCounters.delete(this.currentEditingStudent.id);
+        this.studentCounters.delete(studentId);
 
         // Close modal and refresh
         document.getElementById('studentModal').style.display = 'none';
         this.clearForm();
         this.renderStudentPool();
+        this.saveCurrentClassState();
+    }
+
+    moveStudentToPool() {
+        if (!this.currentEditingStudent) return;
+
+        const studentId = this.currentEditingStudent.id;
+
+        // Remove from any seat
+        this.removeStudentFromSeat(studentId);
+
+        // Close modal and refresh
+        document.getElementById('studentModal').style.display = 'none';
+        this.clearForm();
+        this.renderStudentPool();
+        this.saveCurrentClassState();
     }
 
     updateStudentEverywhere(student) {
@@ -1030,7 +1057,7 @@ class SeatingPlan {
         if (this.isDragging) {
             return;
         }
-        
+
         // Prevent multiple simultaneous presses for the same student
         if (this.longPressTimer || this.counterStartTime) {
             return;
