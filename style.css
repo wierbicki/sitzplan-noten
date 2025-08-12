@@ -30,7 +30,6 @@ body {
     gap: 15px;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
     border: 1px solid rgba(255, 255, 255, 0.2);
-    z-index: 100;
 }
 
 .header-top {
@@ -113,24 +112,17 @@ body {
     display: none;
     position: absolute;
     right: 0;
-    top: calc(100% + 10px);
-    background: rgba(255, 255, 255, 0.98);
+    top: 100%;
+    margin-top: 8px;
+    background: rgba(255, 255, 255, 0.95);
     backdrop-filter: blur(20px);
     border-radius: 16px;
-    min-width: 320px;
+    min-width: 300px;
     max-width: 400px;
-    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.3);
-    border: 2px solid rgba(255, 255, 255, 0.5);
-    z-index: 10000;
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.15);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    z-index: 1000;
     padding: 20px;
-    transform: translateX(0);
-}
-
-@media (max-width: 768px) {
-    .dropdown-content {
-        right: -20px;
-        min-width: 280px;
-    }
 }
 
 .dropdown-content.show {
@@ -268,7 +260,6 @@ body {
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
     border: 1px solid rgba(255, 255, 255, 0.2);
     transition: all 0.3s ease;
-    z-index: 0;
 }
 
 .sidebar h3 {
@@ -293,7 +284,6 @@ body {
     padding: 30px;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
     border: 1px solid rgba(255, 255, 255, 0.2);
-    z-index: 0;
 }
 
 .classroom-grid {
