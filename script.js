@@ -10,6 +10,8 @@ class SeatingPlan {
         this.longPressTimer = null;
         this.isLongPress = false;
         this.longPressDelay = 500; // 500ms for long press
+        this.showGrades = false; // Toggle for grade display
+        this.startingGrade = 4.0; // Default starting grade
         this.init();
     }
 
@@ -92,6 +94,18 @@ class SeatingPlan {
 
         document.getElementById('toggleSidebar').addEventListener('click', () => {
             this.toggleSidebar();
+        });
+
+        document.getElementById('toggleGrades').addEventListener('click', () => {
+            this.toggleGradeDisplay();
+        });
+
+        document.getElementById('startGrade4').addEventListener('click', () => {
+            this.setStartingGrade(4.0);
+        });
+
+        document.getElementById('startGrade35').addEventListener('click', () => {
+            this.setStartingGrade(3.5);
         });
 
         // Close modal on background click
@@ -221,7 +235,15 @@ class SeatingPlan {
         // Add counter display
         const counter = document.createElement('div');
         counter.className = 'student-counter';
-        counter.textContent = this.studentCounters.get(student.id) || 0;
+        
+        if (this.showGrades) {
+            const grade = this.calculateGrade(student.id);
+            counter.textContent = grade;
+            counter.classList.add('grade-display');
+        } else {
+            counter.textContent = this.studentCounters.get(student.id) || 0;
+            counter.classList.remove('grade-display');
+        }
 
         // Add edit button
         const actions = document.createElement('div');
@@ -495,8 +517,15 @@ class SeatingPlan {
         if (seat) {
             const counterElement = seat.element.querySelector('.student-counter');
             if (counterElement) {
-                const count = this.studentCounters.get(studentId) || 0;
-                counterElement.textContent = count;
+                if (this.showGrades) {
+                    const grade = this.calculateGrade(studentId);
+                    counterElement.textContent = grade;
+                    counterElement.classList.add('grade-display');
+                } else {
+                    const count = this.studentCounters.get(studentId) || 0;
+                    counterElement.textContent = count;
+                    counterElement.classList.remove('grade-display');
+                }
             }
         }
     }
@@ -512,6 +541,60 @@ class SeatingPlan {
             sidebar.style.display = 'none';
             toggleBtn.textContent = 'Schülerliste einblenden';
         }
+    }
+
+    toggleGradeDisplay() {
+        this.showGrades = !this.showGrades;
+        const toggleBtn = document.getElementById('toggleGrades');
+        
+        if (this.showGrades) {
+            toggleBtn.textContent = 'Zähler anzeigen';
+            toggleBtn.style.background = '#34c759';
+            toggleBtn.style.color = 'white';
+        } else {
+            toggleBtn.textContent = 'Noten anzeigen';
+            toggleBtn.style.background = '';
+            toggleBtn.style.color = '';
+        }
+        
+        // Update all displays
+        this.renderStudentPool();
+        this.updateAllCounterDisplays();
+    }
+
+    setStartingGrade(grade) {
+        this.startingGrade = grade;
+        
+        // Update button styling
+        document.getElementById('startGrade4').style.background = grade === 4.0 ? '#007aff' : '';
+        document.getElementById('startGrade4').style.color = grade === 4.0 ? 'white' : '';
+        document.getElementById('startGrade35').style.background = grade === 3.5 ? '#007aff' : '';
+        document.getElementById('startGrade35').style.color = grade === 3.5 ? 'white' : '';
+        
+        // Update all displays if grades are shown
+        if (this.showGrades) {
+            this.renderStudentPool();
+            this.updateAllCounterDisplays();
+        }
+    }
+
+    calculateGrade(studentId) {
+        const counter = this.studentCounters.get(studentId) || 0;
+        const grade = this.startingGrade - (counter * 0.5);
+        
+        // Ensure grade stays within reasonable bounds (1.0 to 6.0)
+        const clampedGrade = Math.max(1.0, Math.min(6.0, grade));
+        
+        // Format grade to one decimal place
+        return clampedGrade.toFixed(1);
+    }
+
+    updateAllCounterDisplays() {
+        this.seats.forEach(seat => {
+            if (seat.student) {
+                this.updateCounterDisplay(seat.student.id);
+            }
+        });
     }
 }
 
