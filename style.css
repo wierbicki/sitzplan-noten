@@ -360,7 +360,7 @@ body {
     right: 4px;
     display: none;
     gap: 4px;
-    z-index: 20;
+    z-index: 9999;
     pointer-events: auto;
     padding: 8px;
     margin: -8px;
@@ -370,6 +370,7 @@ body {
     top: -40px;
     padding: 12px;
     margin: -12px;
+    z-index: 9999;
 }
 
 .student-card:hover .student-card-actions,
