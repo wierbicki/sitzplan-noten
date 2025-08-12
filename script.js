@@ -257,9 +257,7 @@ class SeatingPlan {
                 this.handleCounterRelease(student.id);
             });
 
-            card.addEventListener('mouseleave', (e) => {
-                this.handleCounterRelease(student.id);
-            });
+            
 
             // Touch events for mobile
             card.addEventListener('touchstart', (e) => {
@@ -483,7 +481,7 @@ class SeatingPlan {
 
     decrementCounter(studentId) {
         const currentCount = this.studentCounters.get(studentId) || 0;
-        const newCount = Math.max(0, currentCount - 1);
+        const newCount = currentCount - 1;
         this.studentCounters.set(studentId, newCount);
         this.updateCounterDisplay(studentId);
     }
