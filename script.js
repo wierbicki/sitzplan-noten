@@ -419,12 +419,12 @@ class SeatingPlan {
     deleteCurrentStudent() {
         if (!this.currentEditingStudent) return;
 
-        if (confirm(`Möchten Sie ${this.currentEditingStudent.firstName} ${this.currentEditingStudent.lastName} wirklich löschen?`)) {
-            // Remove from students array
-            this.students = this.students.filter(s => s.id !== this.currentEditingStudent.id);
-
-            // Remove from any seat
+        if (confirm(`Möchten Sie ${this.currentEditingStudent.firstName} ${this.currentEditingStudent.lastName} aus dem Grid entfernen?`)) {
+            // Remove from any seat (but keep in students array)
             this.removeStudentFromSeat(this.currentEditingStudent.id);
+
+            // Clear counter for this student
+            this.studentCounters.delete(this.currentEditingStudent.id);
 
             // Close modal and refresh
             document.getElementById('studentModal').style.display = 'none';
