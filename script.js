@@ -132,6 +132,10 @@ class SeatingPlan {
             document.getElementById('gradeTableModal').style.display = 'none';
         });
 
+        document.getElementById('exportGradePDF').addEventListener('click', () => {
+            this.exportGradesToPDF();
+        });
+
         // Class management events
         document.getElementById('addClass').addEventListener('click', () => {
             document.getElementById('classModal').style.display = 'block';
@@ -1409,6 +1413,9 @@ class SeatingPlan {
             return a.firstName.localeCompare(b.firstName, 'de');
         });
 
+        // Store sorted students for PDF export
+        this.sortedStudentsWithGrades = studentsWithGrades;
+
         // Create table HTML
         let tableHTML = `
             <table class="grade-table">
@@ -1455,6 +1462,68 @@ class SeatingPlan {
         // Insert table into modal and show
         document.getElementById('gradeTableContainer').innerHTML = tableHTML;
         document.getElementById('gradeTableModal').style.display = 'block';
+    }
+
+    exportGradesToPDF() {
+        if (!this.sortedStudentsWithGrades || !this.currentClassId) {
+            alert('Keine Notendaten zum Exportieren verfügbar.');
+            return;
+        }
+
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+
+        // Get current class name
+        const currentClass = this.classes.get(this.currentClassId);
+        const className = currentClass ? currentClass.name : 'Unbekannte Klasse';
+
+        // Title
+        doc.setFontSize(16);
+        doc.text(`Notentabelle - ${className}`, 20, 20);
+
+        // Date
+        doc.setFontSize(10);
+        doc.text(`Erstellt am: ${new Date().toLocaleDateString('de-DE')}`, 20, 30);
+
+        // Table headers
+        doc.setFontSize(12);
+        doc.text('Nachname', 20, 50);
+        doc.text('Vorname', 80, 50);
+        doc.text('Note', 140, 50);
+
+        // Line under headers
+        doc.line(20, 55, 180, 55);
+
+        // Table content
+        doc.setFontSize(10);
+        let yPosition = 65;
+
+        this.sortedStudentsWithGrades.forEach((student, index) => {
+            // Check if we need a new page
+            if (yPosition > 270) {
+                doc.addPage();
+                yPosition = 20;
+                
+                // Repeat headers on new page
+                doc.setFontSize(12);
+                doc.text('Nachname', 20, yPosition);
+                doc.text('Vorname', 80, yPosition);
+                doc.text('Note', 140, yPosition);
+                doc.line(20, yPosition + 5, 180, yPosition + 5);
+                yPosition += 15;
+                doc.setFontSize(10);
+            }
+
+            doc.text(student.lastName, 20, yPosition);
+            doc.text(student.firstName, 80, yPosition);
+            doc.text(student.grade, 140, yPosition);
+            
+            yPosition += 10;
+        });
+
+        // Save the PDF
+        const fileName = `Notentabelle_${className.replace(/[^a-zA-Z0-9]/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`;
+        doc.save(fileName);
     }
 }
 
