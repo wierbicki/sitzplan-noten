@@ -148,25 +148,38 @@ class SeatingPlan {
             this.addClass();
         });
 
-        document.getElementById('classSelect').addEventListener('change', (e) => {
-            this.switchClass(e.target.value);
+        // Handle class selection with multiple event types for reliability
+        const classSelect = document.getElementById('classSelect');
+        
+        classSelect.addEventListener('change', (e) => {
+            const selectedValue = e.target.value;
+            if (selectedValue && this.classes.has(selectedValue)) {
+                this.switchClass(selectedValue);
+            }
         });
 
-        // Handle click on select to force reload even with same class
-        document.getElementById('classSelect').addEventListener('click', (e) => {
-            // Store current value before potential change
+        // Handle focus to store current value
+        classSelect.addEventListener('focus', (e) => {
             e.target.dataset.previousValue = e.target.value;
         });
 
-        // Handle when selection happens (including clicking same option)
-        document.getElementById('classSelect').addEventListener('mouseup', (e) => {
-            // Small delay to let the value update
-            setTimeout(() => {
-                const currentValue = e.target.value;
-                if (currentValue && this.classes.has(currentValue)) {
-                    this.switchClass(currentValue);
-                }
-            }, 10);
+        // Handle when user makes a selection (including same option)
+        classSelect.addEventListener('blur', (e) => {
+            const currentValue = e.target.value;
+            const previousValue = e.target.dataset.previousValue;
+            
+            // Always switch if a valid class is selected, even if it's the same
+            if (currentValue && this.classes.has(currentValue)) {
+                this.switchClass(currentValue);
+            }
+        });
+
+        // Additional handler for immediate selection changes
+        classSelect.addEventListener('input', (e) => {
+            const selectedValue = e.target.value;
+            if (selectedValue && this.classes.has(selectedValue)) {
+                this.switchClass(selectedValue);
+            }
         });
 
         document.getElementById('deleteClass').addEventListener('click', () => {
@@ -298,12 +311,12 @@ class SeatingPlan {
             return;
         }
 
-        // Save current class state before switching (only if different class)
+        // Save current class state before switching (only if switching to different class)
         if (this.currentClassId && this.currentClassId !== classId && this.classes.has(this.currentClassId)) {
             this.saveCurrentClassState();
         }
 
-        // Always reload the class data completely
+        // Force reload even if it's the same class (in case user wants to refresh)
         this.currentClassId = classId;
         const classData = this.classes.get(classId);
 
