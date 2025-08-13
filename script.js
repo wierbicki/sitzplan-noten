@@ -607,10 +607,10 @@ class SeatingPlan {
             });
             actions.appendChild(deleteBtn);
         }
+        card.appendChild(actions);
         card.appendChild(avatar);
         card.appendChild(name);
         card.appendChild(counter);
-        card.appendChild(actions);
 
         // Add drag events for all students (both in pool and seated)
         card.addEventListener('dragstart', this.handleDragStart.bind(this));
