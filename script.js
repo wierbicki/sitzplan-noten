@@ -152,19 +152,21 @@ class SeatingPlan {
             this.switchClass(e.target.value);
         });
 
-        // Handle direct selection to force reload even with same class
-        document.getElementById('classSelect').addEventListener('focus', (e) => {
-            e.target.dataset.oldValue = e.target.value;
+        // Handle click on select to force reload even with same class
+        document.getElementById('classSelect').addEventListener('click', (e) => {
+            // Store current value before potential change
+            e.target.dataset.previousValue = e.target.value;
         });
 
-        document.getElementById('classSelect').addEventListener('blur', (e) => {
-            const newValue = e.target.value;
-            const oldValue = e.target.dataset.oldValue;
-            
-            // Always switch if a class is selected, even if it's the same
-            if (newValue && this.classes.has(newValue)) {
-                this.switchClass(newValue);
-            }
+        // Handle when selection happens (including clicking same option)
+        document.getElementById('classSelect').addEventListener('mouseup', (e) => {
+            // Small delay to let the value update
+            setTimeout(() => {
+                const currentValue = e.target.value;
+                if (currentValue && this.classes.has(currentValue)) {
+                    this.switchClass(currentValue);
+                }
+            }, 10);
         });
 
         document.getElementById('deleteClass').addEventListener('click', () => {
@@ -286,7 +288,7 @@ class SeatingPlan {
         document.getElementById('classForm').reset();
     }
 
-    switchClass(classId, forceReload = false) {
+    switchClass(classId) {
         if (!classId || !this.classes.has(classId)) {
             this.currentClassId = null;
             this.students = [];
@@ -296,12 +298,12 @@ class SeatingPlan {
             return;
         }
 
-        // Save current class state before switching
-        if (this.currentClassId && this.classes.has(this.currentClassId)) {
+        // Save current class state before switching (only if different class)
+        if (this.currentClassId && this.currentClassId !== classId && this.classes.has(this.currentClassId)) {
             this.saveCurrentClassState();
         }
 
-        // Always load the selected class data completely
+        // Always reload the class data completely
         this.currentClassId = classId;
         const classData = this.classes.get(classId);
 
@@ -361,7 +363,8 @@ class SeatingPlan {
 
     updateClassSelect() {
         const select = document.getElementById('classSelect');
-        const currentValue = select.value;
+        
+        // Clear and rebuild options
         select.innerHTML = '<option value="">Klasse auswählen...</option>';
 
         // Convert classes Map to array and sort alphabetically by name
@@ -373,14 +376,18 @@ class SeatingPlan {
             const option = document.createElement('option');
             option.value = id;
             option.textContent = classData.name;
+            
+            // Mark as selected if this is the current class
+            if (id === this.currentClassId) {
+                option.selected = true;
+            }
+            
             select.appendChild(option);
         });
 
-        // Always set the current class as selected
+        // Ensure the dropdown shows the correct selection
         if (this.currentClassId && this.classes.has(this.currentClassId)) {
             select.value = this.currentClassId;
-        } else if (currentValue && this.classes.has(currentValue)) {
-            select.value = currentValue;
         }
     }
 
