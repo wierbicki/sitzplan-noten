@@ -9,6 +9,7 @@ class SeatingPlan {
         this.gridColumns = 6;
         this.currentEditingStudent = null;
         this.studentCounters = new Map(); // Store counters for each student
+        this.messageCounters = new Map(); // Store message counters for each student
         this.longPressTimer = null;
         this.isLongPress = false;
         this.longPressDelay = 500; // 500ms for long press
@@ -147,8 +148,14 @@ class SeatingPlan {
             this.addClass();
         });
 
-        document.getElementById('classSelect').addEventListener('change', (e) => {
-            this.switchClass(e.target.value);
+        // Handle class selection with simple, reliable event handling
+        const classSelect = document.getElementById('classSelect');
+        
+        classSelect.addEventListener('change', (e) => {
+            const selectedValue = e.target.value;
+            if (selectedValue && this.classes.has(selectedValue)) {
+                this.switchClass(selectedValue);
+            }
         });
 
         document.getElementById('deleteClass').addEventListener('click', () => {
@@ -228,6 +235,7 @@ class SeatingPlan {
                 { id: Date.now() + Math.random() + 4, firstName: 'Paul', lastName: 'Wagner', photo: null }
             ],
             studentCounters: new Map(),
+            messageCounters: new Map(),
             seatAssignments: new Map(),
             gridRows: 5,
             gridColumns: 6,
@@ -250,6 +258,7 @@ class SeatingPlan {
             name: className,
             students: [],
             studentCounters: new Map(),
+            messageCounters: new Map(),
             seatAssignments: new Map(),
             gridRows: 5,
             gridColumns: 6,
@@ -273,21 +282,23 @@ class SeatingPlan {
             this.currentClassId = null;
             this.students = [];
             this.studentCounters = new Map();
+            this.messageCounters = new Map();
             this.updateUI();
             return;
         }
 
-        // Save current class state
+        // Save current class state before switching
         if (this.currentClassId && this.classes.has(this.currentClassId)) {
             this.saveCurrentClassState();
         }
 
-        // Load new class
+        // Switch to the selected class
         this.currentClassId = classId;
         const classData = this.classes.get(classId);
 
         this.students = classData.students || [];
         this.studentCounters = new Map(classData.studentCounters || []);
+        this.messageCounters = new Map(classData.messageCounters || []);
         this.gridRows = classData.gridRows || 5;
         this.gridColumns = classData.gridColumns || 6;
         this.showGrades = classData.showGrades || false;
@@ -298,8 +309,8 @@ class SeatingPlan {
         this.loadSeatAssignments(classData.seatAssignments || new Map());
         this.updateUI();
 
-        // Update class selector
-        document.getElementById('classSelect').value = classId;
+        // Update class selector and UI
+        this.updateClassSelect();
         document.getElementById('deleteClass').style.display = this.classes.size > 1 ? 'inline-block' : 'none';
     }
 
@@ -309,6 +320,7 @@ class SeatingPlan {
         const classData = this.classes.get(this.currentClassId);
         classData.students = this.students;
         classData.studentCounters = this.studentCounters;
+        classData.messageCounters = this.messageCounters;
         classData.seatAssignments = this.getSeatAssignments();
         classData.gridRows = this.gridRows;
         classData.gridColumns = this.gridColumns;
@@ -340,6 +352,9 @@ class SeatingPlan {
 
     updateClassSelect() {
         const select = document.getElementById('classSelect');
+        const currentValue = select.value; // Store current selection
+        
+        // Clear and rebuild options
         select.innerHTML = '<option value="">Klasse auswählen...</option>';
 
         // Convert classes Map to array and sort alphabetically by name
@@ -354,7 +369,8 @@ class SeatingPlan {
             select.appendChild(option);
         });
 
-        if (this.currentClassId) {
+        // Set the correct selection
+        if (this.currentClassId && this.classes.has(this.currentClassId)) {
             select.value = this.currentClassId;
         }
     }
@@ -378,6 +394,7 @@ class SeatingPlan {
         const classesData = Array.from(this.classes.entries()).map(([id, classData]) => ({
             ...classData,
             studentCounters: Array.from(classData.studentCounters.entries()),
+            messageCounters: Array.from(classData.messageCounters.entries()),
             seatAssignments: Array.from(classData.seatAssignments.entries())
         }));
         localStorage.setItem('seatingPlan_classes', JSON.stringify(classesData));
@@ -599,6 +616,15 @@ class SeatingPlan {
             });
             actions.appendChild(deleteBtn);
         }
+        // Add message counter for seated students
+        if (isSeated) {
+            const messageCounter = document.createElement('div');
+            messageCounter.className = 'student-message-counter';
+            messageCounter.textContent = this.messageCounters.get(student.id) || 0;
+            messageCounter.title = 'Meldungen';
+            card.appendChild(messageCounter);
+        }
+
         card.appendChild(actions);
         card.appendChild(avatar);
         card.appendChild(name);
@@ -618,25 +644,36 @@ class SeatingPlan {
 
         // Add counter events (only for seated students)
         if (isSeated) {
+            // Debounce variables for preventing multiple clicks
+            let lastInteractionTime = 0;
+            let debounceDelay = 300; // 300ms debounce
             let touchStarted = false;
             let mouseStarted = false;
             let touchStartPosition = null;
             let mouseStartPosition = null;
+            let interactionProcessed = false;
 
             // Touch events for mobile devices
             card.addEventListener('touchstart', (e) => {
-                if (e.target.closest('.student-card-actions')) return;
-
-                // Don't prevent default to ensure touch events work properly
+                // Don't handle if touching message counter
+                if (e.target.closest('.student-message-counter')) return;
+                
+                e.stopPropagation();
+                e.preventDefault(); // Prevent mouse events from firing
+                
+                const now = Date.now();
+                if (now - lastInteractionTime < debounceDelay) {
+                    return; // Ignore if too soon after last interaction
+                }
+                
                 touchStarted = true;
                 mouseStarted = false;
-                this.isDragging = false; // Reset drag state
+                this.isDragging = false;
+                interactionProcessed = false;
                 touchStartPosition = { 
                     x: e.touches[0].clientX, 
                     y: e.touches[0].clientY 
                 };
-
-                // Start counter press immediately
                 this.handleCounterPress(student.id);
             });
 
@@ -652,26 +689,32 @@ class SeatingPlan {
                     Math.pow(currentPos.y - touchStartPosition.y, 2)
                 );
 
-                // If moved more than 10 pixels, consider it a drag (increased threshold)
                 if (distance > 10) {
                     if (!this.isDragging) {
                         this.isDragging = true;
                         this.handleCounterRelease(student.id);
+                        interactionProcessed = true;
                     }
                 }
             });
 
             card.addEventListener('touchend', (e) => {
-                if (e.target.closest('.student-card-actions')) return;
+                // Don't handle if touching message counter
+                if (e.target.closest('.student-message-counter')) return;
+                
+                e.stopPropagation();
+                e.preventDefault(); // Prevent mouse events from firing
+                
                 if (!touchStarted) return;
-
                 touchStarted = false;
 
-                // Add a small delay to ensure touch end is processed properly
+                const now = Date.now();
+                
                 setTimeout(() => {
-                    // Only handle counter release if not dragging
-                    if (!this.isDragging) {
+                    if (!this.isDragging && !interactionProcessed) {
                         this.handleCounterRelease(student.id);
+                        lastInteractionTime = now;
+                        interactionProcessed = true;
                     }
                     touchStartPosition = null;
                 }, 50);
@@ -680,23 +723,27 @@ class SeatingPlan {
             card.addEventListener('touchcancel', (e) => {
                 if (!touchStarted) return;
                 touchStarted = false;
-                
+
                 setTimeout(() => {
                     this.handleCounterRelease(student.id);
                     touchStartPosition = null;
+                    interactionProcessed = true;
                 }, 50);
             });
 
-            // Mouse events for desktop (only if no touch was started)
+            // Mouse events for desktop (only if no touch interaction)
             card.addEventListener('mousedown', (e) => {
-                if (e.target.closest('.student-card-actions')) return;
-                if (touchStarted) return; // Skip if touch is active
-
+                // Don't handle if clicking message counter or if touch was used recently
+                if (e.target.closest('.student-message-counter')) return;
+                
+                const now = Date.now();
+                if (now - lastInteractionTime < debounceDelay || touchStarted) return;
+                
+                e.stopPropagation();
                 mouseStarted = true;
-                this.isDragging = false; // Reset drag state
+                this.isDragging = false;
+                interactionProcessed = false;
                 mouseStartPosition = { x: e.clientX, y: e.clientY };
-
-                // Start counter press immediately
                 this.handleCounterPress(student.id);
             });
 
@@ -708,24 +755,29 @@ class SeatingPlan {
                     Math.pow(e.clientY - mouseStartPosition.y, 2)
                 );
 
-                // If moved more than 5 pixels, consider it a drag
                 if (distance > 5) {
                     if (!this.isDragging) {
                         this.isDragging = true;
                         this.handleCounterRelease(student.id);
+                        interactionProcessed = true;
                     }
                 }
             });
 
             card.addEventListener('mouseup', (e) => {
-                if (e.target.closest('.student-card-actions')) return;
+                // Don't handle if clicking message counter
+                if (e.target.closest('.student-message-counter')) return;
+                
+                e.stopPropagation();
                 if (!mouseStarted || touchStarted) return;
 
                 mouseStarted = false;
+                const now = Date.now();
 
-                // Only handle counter release if not dragging
-                if (!this.isDragging) {
+                if (!this.isDragging && !interactionProcessed) {
                     this.handleCounterRelease(student.id);
+                    lastInteractionTime = now;
+                    interactionProcessed = true;
                 }
 
                 mouseStartPosition = null;
@@ -737,14 +789,40 @@ class SeatingPlan {
                 mouseStarted = false;
                 this.handleCounterRelease(student.id);
                 mouseStartPosition = null;
+                interactionProcessed = true;
             });
 
-            // Right-click to decrement counter
-            card.addEventListener('contextmenu', (e) => {
-                if (e.target.closest('.student-card-actions')) return;
-                e.preventDefault(); // Prevent context menu
-                this.decrementCounter(student.id);
-            });
+            // Message counter events (only on direct clicks)
+            const messageCounter = card.querySelector('.student-message-counter');
+            if (messageCounter) {
+                let messageCounterLastClick = 0;
+                
+                messageCounter.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    
+                    const now = Date.now();
+                    if (now - messageCounterLastClick < debounceDelay) {
+                        return; // Ignore if too soon after last click
+                    }
+                    
+                    messageCounterLastClick = now;
+                    this.incrementMessageCounter(student.id);
+                });
+
+                messageCounter.addEventListener('contextmenu', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    
+                    const now = Date.now();
+                    if (now - messageCounterLastClick < debounceDelay) {
+                        return; // Ignore if too soon after last interaction
+                    }
+                    
+                    messageCounterLastClick = now;
+                    this.decrementMessageCounter(student.id);
+                });
+            }
         } else {
             // Double click to remove from seat (only for students in pool)
             card.addEventListener('dblclick', () => {
@@ -870,13 +948,16 @@ class SeatingPlan {
             seat.element.innerHTML = '<span style="color: #8e8e93; font-size: 12px;">' + (seat.id + 1) + '</span>';
         });
         this.studentCounters.clear(); // Clear counters as well
+        this.messageCounters.clear(); // Clear message counters as well
         this.renderStudentPool();
     }
 
     resetAllCounters() {
-        if (confirm('Möchten Sie wirklich alle Zähler in dieser Klasse zurücksetzen?')) {
+        if (confirm('Möchten Sie wirklich alle Zähler und Meldungen in dieser Klasse zurücksetzen?')) {
             this.studentCounters.clear();
+            this.messageCounters.clear();
             this.updateAllCounterDisplays();
+            this.updateAllMessageCounterDisplays();
             this.renderStudentPool();
             this.saveCurrentClassState();
         }
@@ -1059,8 +1140,9 @@ class SeatingPlan {
             // Remove from students array
             this.students = this.students.filter(s => s.id != studentId);
 
-            // Clear counter for this student
+            // Clear counters for this student
             this.studentCounters.delete(studentId);
+            this.messageCounters.delete(studentId);
 
             // Refresh displays
             this.renderStudentPool();
@@ -1146,6 +1228,21 @@ class SeatingPlan {
         this.saveCurrentClassState();
     }
 
+    incrementMessageCounter(studentId) {
+        const currentCount = this.messageCounters.get(studentId) || 0;
+        this.messageCounters.set(studentId, currentCount + 1);
+        this.updateMessageCounterDisplay(studentId);
+        this.saveCurrentClassState();
+    }
+
+    decrementMessageCounter(studentId) {
+        const currentCount = this.messageCounters.get(studentId) || 0;
+        const newCount = Math.max(0, currentCount - 1);
+        this.messageCounters.set(studentId, newCount);
+        this.updateMessageCounterDisplay(studentId);
+        this.saveCurrentClassState();
+    }
+
     updateCounterDisplay(studentId) {
         const seat = this.seats.find(s => s.student && s.student.id == studentId);
         if (seat) {
@@ -1178,6 +1275,17 @@ class SeatingPlan {
                     counterElement.textContent = count;
                     counterElement.classList.remove('grade-display', 'grade-1', 'grade-2', 'grade-3', 'grade-4', 'grade-5', 'grade-6');
                 }
+            }
+        }
+    }
+
+    updateMessageCounterDisplay(studentId) {
+        const seat = this.seats.find(s => s.student && s.student.id == studentId);
+        if (seat) {
+            const messageCounterElement = seat.element.querySelector('.student-message-counter');
+            if (messageCounterElement) {
+                const count = this.messageCounters.get(studentId) || 0;
+                messageCounterElement.textContent = count;
             }
         }
     }
@@ -1276,6 +1384,14 @@ class SeatingPlan {
         });
     }
 
+    updateAllMessageCounterDisplays() {
+        this.seats.forEach(seat => {
+            if (seat.student) {
+                this.updateMessageCounterDisplay(seat.student.id);
+            }
+        });
+    }
+
     exportData() {
         // Save current class state before exporting
         if (this.currentClassId) {
@@ -1296,6 +1412,7 @@ class SeatingPlan {
                 name: classData.name,
                 students: classData.students || [],
                 studentCounters: Array.from((classData.studentCounters || new Map()).entries()),
+                messageCounters: Array.from((classData.messageCounters || new Map()).entries()),
                 seatAssignments: Array.from((classData.seatAssignments || new Map()).entries()),
                 gridRows: classData.gridRows || 5,
                 gridColumns: classData.gridColumns || 6,
@@ -1354,6 +1471,7 @@ class SeatingPlan {
                         name: classData.name,
                         students: classData.students || [],
                         studentCounters: new Map(classData.studentCounters || []),
+                        messageCounters: new Map(classData.messageCounters || []),
                         seatAssignments: new Map(classData.seatAssignments || []),
                         gridRows: classData.gridRows || 5,
                         gridColumns: classData.gridColumns || 6,
