@@ -1548,7 +1548,9 @@ class SeatingPlan {
         
         // Add student data
         this.sortedStudentsWithGrades.forEach(student => {
-            excelData.push([student.lastName, student.firstName, student.grade]);
+            // Convert grade from dot to comma decimal format
+            const gradeWithComma = student.grade.replace('.', ',');
+            excelData.push([student.lastName, student.firstName, gradeWithComma]);
         });
 
         // Create workbook and worksheet
