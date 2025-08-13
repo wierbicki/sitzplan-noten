@@ -476,7 +476,7 @@ body {
     line-height: 1.1;
 }
 
-.student-message-counter {
+.student-counter {
     background: #007aff;
     color: white;
     border-radius: 50%;
@@ -485,54 +485,19 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 11px;
+    font-size: 12px;
     font-weight: 600;
-    position: absolute;
-    bottom: 4px;
-    right: 4px;
-    z-index: 100;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    border: 2px solid rgba(255, 255, 255, 0.3);
-    user-select: none;
-    pointer-events: auto;
-}
-
-.student-message-counter:hover {
-    background: #0056cc;
-    transform: scale(1.1);
-}
-
-.student-message-counter:active {
-    transform: scale(0.95);
-}
-
-.student-counter {
-    background: #34c759;
-    color: white;
-    border-radius: 50%;
-    width: 40px;
-    height: 40px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 16px;
-    font-weight: 700;
     margin-top: 4px;
     position: absolute;
     top: 4px;
     left: 4px;
     z-index: 10;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    border: 2px solid rgba(255, 255, 255, 0.3);
-    user-select: none;
 }
 
 .student-counter.grade-display {
-    width: 44px;
-    height: 44px;
-    font-size: 16px;
+    width: 36px;
+    height: 36px;
+    font-size: 14px;
     font-weight: 700;
     border-radius: 8px;
     border: 2px solid rgba(255, 255, 255, 0.3);
