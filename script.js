@@ -525,12 +525,10 @@ class SeatingPlan {
         const name = document.createElement('div');
         name.className = 'student-name';
         name.textContent = student.firstName;
-        name.style.fontSize = '1.2em'; // Make student name slightly larger
 
         // Add counter display
         const counter = document.createElement('div');
         counter.className = 'student-counter';
-        counter.style.fontSize = '1.2em'; // Make counter slightly larger
 
         if (this.showGrades) {
             const grade = this.calculateGrade(student.id);
@@ -633,9 +631,9 @@ class SeatingPlan {
                 touchStarted = true;
                 mouseStarted = false;
                 this.isDragging = false; // Reset drag state
-                touchStartPosition = {
-                    x: e.touches[0].clientX,
-                    y: e.touches[0].clientY
+                touchStartPosition = { 
+                    x: e.touches[0].clientX, 
+                    y: e.touches[0].clientY 
                 };
 
                 // Start counter press immediately
@@ -645,12 +643,12 @@ class SeatingPlan {
             card.addEventListener('touchmove', (e) => {
                 if (!touchStarted || !touchStartPosition) return;
 
-                const currentPos = {
-                    x: e.touches[0].clientX,
-                    y: e.touches[0].clientY
+                const currentPos = { 
+                    x: e.touches[0].clientX, 
+                    y: e.touches[0].clientY 
                 };
                 const distance = Math.sqrt(
-                    Math.pow(currentPos.x - touchStartPosition.x, 2) +
+                    Math.pow(currentPos.x - touchStartPosition.x, 2) + 
                     Math.pow(currentPos.y - touchStartPosition.y, 2)
                 );
 
@@ -682,7 +680,7 @@ class SeatingPlan {
             card.addEventListener('touchcancel', (e) => {
                 if (!touchStarted) return;
                 touchStarted = false;
-
+                
                 setTimeout(() => {
                     this.handleCounterRelease(student.id);
                     touchStartPosition = null;
@@ -706,7 +704,7 @@ class SeatingPlan {
                 if (!mouseStarted || !mouseStartPosition || touchStarted) return;
 
                 const distance = Math.sqrt(
-                    Math.pow(e.clientX - mouseStartPosition.x, 2) +
+                    Math.pow(e.clientX - mouseStartPosition.x, 2) + 
                     Math.pow(e.clientY - mouseStartPosition.y, 2)
                 );
 
@@ -739,13 +737,6 @@ class SeatingPlan {
                 mouseStarted = false;
                 this.handleCounterRelease(student.id);
                 mouseStartPosition = null;
-            });
-
-            // Right-click to decrement counter
-            card.addEventListener('contextmenu', (e) => {
-                if (e.target.closest('.student-card-actions')) return;
-                e.preventDefault(); // Prevent context menu
-                this.decrementCounter(student.id);
             });
         } else {
             // Double click to remove from seat (only for students in pool)
