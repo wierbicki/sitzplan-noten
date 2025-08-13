@@ -633,116 +633,162 @@ class SeatingPlan {
 
         // Add counter events (only for seated students)
         if (isSeated) {
-            // Main counter events
-            const mainCounter = card.querySelector('.student-counter');
-            if (mainCounter) {
-                let touchStarted = false;
-                let mouseStarted = false;
-                let touchStartPosition = null;
-                let mouseStartPosition = null;
+            let touchStarted = false;
+            let mouseStarted = false;
+            let touchStartPosition = null;
+            let mouseStartPosition = null;
 
-                // Touch events for mobile devices
-                mainCounter.addEventListener('touchstart', (e) => {
-                    e.stopPropagation();
-                    touchStarted = true;
-                    mouseStarted = false;
-                    this.isDragging = false;
-                    touchStartPosition = { 
-                        x: e.touches[0].clientX, 
-                        y: e.touches[0].clientY 
-                    };
-                    this.handleCounterPress(student.id);
-                });
+            // Touch events for mobile devices
+            card.addEventListener('touchstart', (e) => {
+                if (e.target.closest('.student-card-actions')) return;
 
-                mainCounter.addEventListener('touchmove', (e) => {
-                    if (!touchStarted || !touchStartPosition) return;
+                // Don't prevent default to ensure touch events work properly
+                touchStarted = true;
+                mouseStarted = false;
+                this.isDragging = false; // Reset drag state
+                touchStartPosition = { 
+                    x: e.touches[0].clientX, 
+                    y: e.touches[0].clientY 
+                };
 
-                    const currentPos = { 
-                        x: e.touches[0].clientX, 
-                        y: e.touches[0].clientY 
-                    };
-                    const distance = Math.sqrt(
-                        Math.pow(currentPos.x - touchStartPosition.x, 2) + 
-                        Math.pow(currentPos.y - touchStartPosition.y, 2)
-                    );
+                // Start counter press immediately
+                this.handleCounterPress(student.id);
+            });
 
-                    if (distance > 10) {
-                        if (!this.isDragging) {
-                            this.isDragging = true;
-                            this.handleCounterRelease(student.id);
-                        }
-                    }
-                });
+            card.addEventListener('touchmove', (e) => {
+                if (!touchStarted || !touchStartPosition) return;
 
-                mainCounter.addEventListener('touchend', (e) => {
-                    e.stopPropagation();
-                    if (!touchStarted) return;
-                    touchStarted = false;
+                const currentPos = { 
+                    x: e.touches[0].clientX, 
+                    y: e.touches[0].clientY 
+                };
+                const distance = Math.sqrt(
+                    Math.pow(currentPos.x - touchStartPosition.x, 2) + 
+                    Math.pow(currentPos.y - touchStartPosition.y, 2)
+                );
 
-                    setTimeout(() => {
-                        if (!this.isDragging) {
-                            this.handleCounterRelease(student.id);
-                        }
-                        touchStartPosition = null;
-                    }, 50);
-                });
-
-                mainCounter.addEventListener('touchcancel', (e) => {
-                    if (!touchStarted) return;
-                    touchStarted = false;
-
-                    setTimeout(() => {
+                // If moved more than 10 pixels, consider it a drag (increased threshold)
+                if (distance > 10) {
+                    if (!this.isDragging) {
+                        this.isDragging = true;
                         this.handleCounterRelease(student.id);
-                        touchStartPosition = null;
-                    }, 50);
-                });
-
-                // Mouse events for desktop
-                mainCounter.addEventListener('mousedown', (e) => {
-                    e.stopPropagation();
-                    if (touchStarted) return;
-
-                    mouseStarted = true;
-                    this.isDragging = false;
-                    mouseStartPosition = { x: e.clientX, y: e.clientY };
-                    this.handleCounterPress(student.id);
-                });
-
-                mainCounter.addEventListener('mousemove', (e) => {
-                    if (!mouseStarted || !mouseStartPosition || touchStarted) return;
-
-                    const distance = Math.sqrt(
-                        Math.pow(e.clientX - mouseStartPosition.x, 2) + 
-                        Math.pow(e.clientY - mouseStartPosition.y, 2)
-                    );
-
-                    if (distance > 5) {
-                        if (!this.isDragging) {
-                            this.isDragging = true;
-                            this.handleCounterRelease(student.id);
-                        }
                     }
-                });
+                }
+            });
 
-                mainCounter.addEventListener('mouseup', (e) => {
-                    e.stopPropagation();
-                    if (!mouseStarted || touchStarted) return;
+            card.addEventListener('touchend', (e) => {
+                if (e.target.closest('.student-card-actions')) return;
+                if (!touchStarted) return;
 
-                    mouseStarted = false;
+                touchStarted = false;
 
+                // Add a small delay to ensure touch end is processed properly
+                setTimeout(() => {
+                    // Only handle counter release if not dragging
                     if (!this.isDragging) {
                         this.handleCounterRelease(student.id);
                     }
+                    touchStartPosition = null;
+                }, 50);
+            });
 
-                    mouseStartPosition = null;
+            card.addEventListener('touchcancel', (e) => {
+                if (!touchStarted) return;
+                touchStarted = false;
+                
+                setTimeout(() => {
+                    this.handleCounterRelease(student.id);
+                    touchStartPosition = null;
+                }, 50);
+            });
+
+            // Mouse events for desktop (only if no touch was started)
+            card.addEventListener('mousedown', (e) => {
+                if (e.target.closest('.student-card-actions')) return;
+                if (touchStarted) return; // Skip if touch is active
+
+                mouseStarted = true;
+                this.isDragging = false; // Reset drag state
+                mouseStartPosition = { x: e.clientX, y: e.clientY };
+
+                // Start counter press immediately
+                this.handleCounterPress(student.id);
+            });
+
+            card.addEventListener('mousemove', (e) => {
+                if (!mouseStarted || !mouseStartPosition || touchStarted) return;
+
+                const distance = Math.sqrt(
+                    Math.pow(e.clientX - mouseStartPosition.x, 2) + 
+                    Math.pow(e.clientY - mouseStartPosition.y, 2)
+                );
+
+                // If moved more than 5 pixels, consider it a drag
+                if (distance > 5) {
+                    if (!this.isDragging) {
+                        this.isDragging = true;
+                        this.handleCounterRelease(student.id);
+                    }
+                }
+            });
+
+            card.addEventListener('mouseup', (e) => {
+                if (e.target.closest('.student-card-actions')) return;
+                if (!mouseStarted || touchStarted) return;
+
+                mouseStarted = false;
+
+                // Only handle counter release if not dragging
+                if (!this.isDragging) {
+                    this.handleCounterRelease(student.id);
+                }
+
+                mouseStartPosition = null;
+            });
+
+            card.addEventListener('mouseleave', (e) => {
+                if (!mouseStarted || touchStarted) return;
+
+                mouseStarted = false;
+                this.handleCounterRelease(student.id);
+                mouseStartPosition = null;
+            });
+
+            // Message counter events (only for seated students)
+            const messageCounterElement = card.querySelector('.student-message-counter');
+            if (messageCounterElement) {
+                messageCounterElement.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    this.incrementMessageCounter(student.id);
                 });
 
-                mainCounter.addEventListener('mouseleave', (e) => {
-                    if (!mouseStarted || touchStarted) return;
+                messageCounterElement.addEventListener('contextmenu', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    this.decrementMessageCounter(student.id);
+                });
 
-                    mouseStarted = false;
-                    this.handleCounterRelease(student.id);
-                    mouseStartPosition = null;
+                // Touch events for message counter
+                let messageTouchTimer = null;
+                messageCounterElement.addEventListener('touchstart', (e) => {
+                    e.stopPropagation();
+                    messageTouchTimer = setTimeout(() => {
+                        this.decrementMessageCounter(student.id);
+                    }, 500);
+                });
+
+                messageCounterElement.addEventListener('touchend', (e) => {
+                    e.stopPropagation();
+                    if (messageTouchTimer) {
+                        clearTimeout(messageTouchTimer);
+                        this.incrementMessageCounter(student.id);
+                    }
+                });
+
+                messageCounterElement.addEventListener('touchcancel', (e) => {
+                    if (messageTouchTimer) {
+                        clearTimeout(messageTouchTimer);
+                    }
                 });
             }
         } else {
