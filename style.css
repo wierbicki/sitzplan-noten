@@ -374,7 +374,7 @@ body {
 }
 
 .student-card:hover .student-card-actions,
-.student-card-actions:hover {
+.seat:hover .student-card-actions {
     display: flex;
 }
 
@@ -452,7 +452,7 @@ body {
 }
 
 .student-name {
-    font-size: 12px;
+    font-size: 16px;
     font-weight: 500;
     color: #1d1d1f;
     line-height: 1.2;
@@ -463,17 +463,18 @@ body {
     bottom: 4px;
     left: 4px;
     right: 4px;
-    font-size: 12px;
+    font-size: 14px;
     font-weight: 600;
     color: white;
     text-align: center;
     background: rgba(0, 0, 0, 0.7);
     border-radius: 4px;
     padding: 2px 4px;
-    z-index: 0;
+    z-index: 1;
     text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
     margin-bottom: 0;
     line-height: 1.1;
+    transform: translateZ(0);
 }
 
 .student-counter {
