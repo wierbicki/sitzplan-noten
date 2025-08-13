@@ -300,8 +300,7 @@ body {
 }
 
 .seat {
-    background: rgba(142, 142, 147, 0.1);
-    border: 2px dashed rgba(142, 142, 147, 0.3);
+    border: 2px dashed rgba(142, 142, 147, 0.2);
     border-radius: 12px;
     display: flex;
     flex-direction: column;
