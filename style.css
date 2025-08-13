@@ -477,7 +477,7 @@ body {
 }
 
 .student-counter {
-    background: #007aff;
+    background: #34c759;
     color: white;
     border-radius: 50%;
     width: 24px;
@@ -492,6 +492,12 @@ body {
     top: 4px;
     left: 4px;
     z-index: 10;
+}
+
+.seat .student-counter {
+    width: 48px;
+    height: 48px;
+    font-size: 24px;
 }
 
 .student-counter.grade-display {
