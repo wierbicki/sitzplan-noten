@@ -495,9 +495,9 @@ body {
 }
 
 .seat .student-counter {
-    width: 48px;
-    height: 48px;
-    font-size: 24px;
+    width: 36px;
+    height: 36px;
+    font-size: 18px;
 }
 
 .student-counter.grade-display {
