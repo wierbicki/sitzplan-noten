@@ -136,6 +136,10 @@ class SeatingPlan {
             this.exportGradesToPDF();
         });
 
+        document.getElementById('exportGradeExcel').addEventListener('click', () => {
+            this.exportGradesToExcel();
+        });
+
         // Class management events
         document.getElementById('addClass').addEventListener('click', () => {
             document.getElementById('classModal').style.display = 'block';
@@ -1524,6 +1528,58 @@ class SeatingPlan {
         // Save the PDF
         const fileName = `Notentabelle_${className.replace(/[^a-zA-Z0-9]/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`;
         doc.save(fileName);
+    }
+
+    exportGradesToExcel() {
+        if (!this.sortedStudentsWithGrades || !this.currentClassId) {
+            alert('Keine Notendaten zum Exportieren verfügbar.');
+            return;
+        }
+
+        // Get current class name
+        const currentClass = this.classes.get(this.currentClassId);
+        const className = currentClass ? currentClass.name : 'Unbekannte Klasse';
+
+        // Prepare data for Excel export
+        const excelData = [];
+        
+        // Add header row
+        excelData.push(['Nachname', 'Vorname', 'Note']);
+        
+        // Add student data
+        this.sortedStudentsWithGrades.forEach(student => {
+            excelData.push([student.lastName, student.firstName, student.grade]);
+        });
+
+        // Create workbook and worksheet
+        const wb = XLSX.utils.book_new();
+        const ws = XLSX.utils.aoa_to_sheet(excelData);
+
+        // Set column widths
+        ws['!cols'] = [
+            { width: 20 }, // Nachname
+            { width: 20 }, // Vorname
+            { width: 10 }  // Note
+        ];
+
+        // Style the header row
+        const headerRange = XLSX.utils.decode_range(ws['!ref']);
+        for (let col = headerRange.s.c; col <= headerRange.e.c; col++) {
+            const cellAddress = XLSX.utils.encode_cell({ r: 0, c: col });
+            if (ws[cellAddress]) {
+                ws[cellAddress].s = {
+                    font: { bold: true },
+                    fill: { fgColor: { rgb: "CCCCCC" } }
+                };
+            }
+        }
+
+        // Add worksheet to workbook with class name as sheet name
+        XLSX.utils.book_append_sheet(wb, ws, className.substring(0, 31)); // Excel sheet names max 31 chars
+
+        // Generate filename and download
+        const fileName = `Notentabelle_${className.replace(/[^a-zA-Z0-9]/g, '_')}_${new Date().toISOString().split('T')[0]}.xlsx`;
+        XLSX.writeFile(wb, fileName);
     }
 }
 
