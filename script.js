@@ -148,14 +148,8 @@ class SeatingPlan {
             this.addClass();
         });
 
-        // Handle class selection with simple, reliable event handling
-        const classSelect = document.getElementById('classSelect');
-        
-        classSelect.addEventListener('change', (e) => {
-            const selectedValue = e.target.value;
-            if (selectedValue && this.classes.has(selectedValue)) {
-                this.switchClass(selectedValue);
-            }
+        document.getElementById('classSelect').addEventListener('change', (e) => {
+            this.switchClass(e.target.value);
         });
 
         document.getElementById('deleteClass').addEventListener('click', () => {
@@ -282,17 +276,16 @@ class SeatingPlan {
             this.currentClassId = null;
             this.students = [];
             this.studentCounters = new Map();
-            this.messageCounters = new Map();
             this.updateUI();
             return;
         }
 
-        // Save current class state before switching
+        // Save current class state
         if (this.currentClassId && this.classes.has(this.currentClassId)) {
             this.saveCurrentClassState();
         }
 
-        // Switch to the selected class
+        // Load new class
         this.currentClassId = classId;
         const classData = this.classes.get(classId);
 
@@ -309,8 +302,8 @@ class SeatingPlan {
         this.loadSeatAssignments(classData.seatAssignments || new Map());
         this.updateUI();
 
-        // Update class selector and UI
-        this.updateClassSelect();
+        // Update class selector
+        document.getElementById('classSelect').value = classId;
         document.getElementById('deleteClass').style.display = this.classes.size > 1 ? 'inline-block' : 'none';
     }
 
@@ -352,9 +345,6 @@ class SeatingPlan {
 
     updateClassSelect() {
         const select = document.getElementById('classSelect');
-        const currentValue = select.value; // Store current selection
-        
-        // Clear and rebuild options
         select.innerHTML = '<option value="">Klasse auswählen...</option>';
 
         // Convert classes Map to array and sort alphabetically by name
@@ -369,8 +359,7 @@ class SeatingPlan {
             select.appendChild(option);
         });
 
-        // Set the correct selection
-        if (this.currentClassId && this.classes.has(this.currentClassId)) {
+        if (this.currentClassId) {
             select.value = this.currentClassId;
         }
     }
