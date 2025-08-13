@@ -533,7 +533,6 @@ class SeatingPlan {
         const name = document.createElement('div');
         name.className = 'student-name';
         name.textContent = student.firstName;
-        name.style.fontSize = '1.2em'; // Make first name larger
 
         // Add counter display
         const counter = document.createElement('div');
@@ -608,19 +607,10 @@ class SeatingPlan {
             });
             actions.appendChild(deleteBtn);
         }
+        card.appendChild(actions);
         card.appendChild(avatar);
         card.appendChild(name);
         card.appendChild(counter);
-        card.appendChild(actions);
-
-        // Add hover events to student name to show/hide actions
-        name.addEventListener('mouseenter', () => {
-            actions.style.display = 'flex';
-        });
-
-        name.addEventListener('mouseleave', () => {
-            actions.style.display = 'none';
-        });
 
         // Add drag events for all students (both in pool and seated)
         card.addEventListener('dragstart', this.handleDragStart.bind(this));
@@ -698,7 +688,7 @@ class SeatingPlan {
             card.addEventListener('touchcancel', (e) => {
                 if (!touchStarted) return;
                 touchStarted = false;
-
+                
                 setTimeout(() => {
                     this.handleCounterRelease(student.id);
                     touchStartPosition = null;
@@ -1517,7 +1507,7 @@ class SeatingPlan {
             if (yPosition > 270) {
                 doc.addPage();
                 yPosition = 20;
-
+                
                 // Repeat headers on new page
                 doc.setFontSize(12);
                 doc.text('Nachname', 20, yPosition);
@@ -1531,7 +1521,7 @@ class SeatingPlan {
             doc.text(student.lastName, 20, yPosition);
             doc.text(student.firstName, 80, yPosition);
             doc.text(student.grade, 140, yPosition);
-
+            
             yPosition += 10;
         });
 
@@ -1552,10 +1542,10 @@ class SeatingPlan {
 
         // Prepare data for Excel export
         const excelData = [];
-
+        
         // Add header row
         excelData.push(['Nachname', 'Vorname', 'Note']);
-
+        
         // Add student data
         this.sortedStudentsWithGrades.forEach(student => {
             // Convert grade from dot to comma decimal format
