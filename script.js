@@ -148,34 +148,10 @@ class SeatingPlan {
             this.addClass();
         });
 
-        // Handle class selection with multiple event types for reliability
+        // Handle class selection with simple, reliable event handling
         const classSelect = document.getElementById('classSelect');
         
         classSelect.addEventListener('change', (e) => {
-            const selectedValue = e.target.value;
-            if (selectedValue && this.classes.has(selectedValue)) {
-                this.switchClass(selectedValue);
-            }
-        });
-
-        // Handle focus to store current value
-        classSelect.addEventListener('focus', (e) => {
-            e.target.dataset.previousValue = e.target.value;
-        });
-
-        // Handle when user makes a selection (including same option)
-        classSelect.addEventListener('blur', (e) => {
-            const currentValue = e.target.value;
-            const previousValue = e.target.dataset.previousValue;
-            
-            // Always switch if a valid class is selected, even if it's the same
-            if (currentValue && this.classes.has(currentValue)) {
-                this.switchClass(currentValue);
-            }
-        });
-
-        // Additional handler for immediate selection changes
-        classSelect.addEventListener('input', (e) => {
             const selectedValue = e.target.value;
             if (selectedValue && this.classes.has(selectedValue)) {
                 this.switchClass(selectedValue);
@@ -311,12 +287,12 @@ class SeatingPlan {
             return;
         }
 
-        // Save current class state before switching (only if switching to different class)
-        if (this.currentClassId && this.currentClassId !== classId && this.classes.has(this.currentClassId)) {
+        // Save current class state before switching
+        if (this.currentClassId && this.classes.has(this.currentClassId)) {
             this.saveCurrentClassState();
         }
 
-        // Force reload even if it's the same class (in case user wants to refresh)
+        // Switch to the selected class
         this.currentClassId = classId;
         const classData = this.classes.get(classId);
 
@@ -376,6 +352,7 @@ class SeatingPlan {
 
     updateClassSelect() {
         const select = document.getElementById('classSelect');
+        const currentValue = select.value; // Store current selection
         
         // Clear and rebuild options
         select.innerHTML = '<option value="">Klasse auswählen...</option>';
@@ -389,16 +366,10 @@ class SeatingPlan {
             const option = document.createElement('option');
             option.value = id;
             option.textContent = classData.name;
-            
-            // Mark as selected if this is the current class
-            if (id === this.currentClassId) {
-                option.selected = true;
-            }
-            
             select.appendChild(option);
         });
 
-        // Ensure the dropdown shows the correct selection
+        // Set the correct selection
         if (this.currentClassId && this.classes.has(this.currentClassId)) {
             select.value = this.currentClassId;
         }
