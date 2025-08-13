@@ -738,6 +738,13 @@ class SeatingPlan {
                 this.handleCounterRelease(student.id);
                 mouseStartPosition = null;
             });
+
+            // Right-click to decrement counter
+            card.addEventListener('contextmenu', (e) => {
+                if (e.target.closest('.student-card-actions')) return;
+                e.preventDefault(); // Prevent context menu
+                this.decrementCounter(student.id);
+            });
         } else {
             // Double click to remove from seat (only for students in pool)
             card.addEventListener('dblclick', () => {
