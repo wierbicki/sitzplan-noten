@@ -463,14 +463,14 @@ body {
     bottom: 4px;
     left: 4px;
     right: 4px;
-    font-size: 12px;
+    font-size: 14px;
     font-weight: 600;
     color: white;
     text-align: center;
     background: rgba(0, 0, 0, 0.7);
     border-radius: 4px;
     padding: 2px 4px;
-    z-index: 10;
+    z-index: 0;
     text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
     margin-bottom: 0;
     line-height: 1.1;
@@ -495,8 +495,8 @@ body {
 }
 
 .seat .student-counter {
-    width: 36px;
-    height: 36px;
+    width: 34px;
+    height: 34px;
     font-size: 18px;
 }
 
