@@ -639,7 +639,8 @@ class SeatingPlan {
             card.addEventListener('touchstart', (e) => {
                 if (e.target.closest('.student-card-actions')) return;
 
-                // Don't prevent default to ensure touch events work properly
+                // Prevent context menu on touch devices
+                e.preventDefault();
                 touchStarted = true;
                 mouseStarted = false;
                 this.isDragging = false; // Reset drag state
@@ -704,12 +705,25 @@ class SeatingPlan {
                 if (e.target.closest('.student-card-actions')) return;
                 if (touchStarted) return; // Skip if touch is active
 
+                // Prevent context menu for right clicks during counter operations
+                if (e.button === 2) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                }
+
                 mouseStarted = true;
                 this.isDragging = false; // Reset drag state
                 mouseStartPosition = { x: e.clientX, y: e.clientY };
 
                 // Start counter press immediately
                 this.handleCounterPress(student.id);
+            });
+
+            // Prevent context menu completely on seated students
+            card.addEventListener('contextmenu', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                return false;
             });
 
             card.addEventListener('mousemove', (e) => {
