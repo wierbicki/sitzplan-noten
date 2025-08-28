@@ -63,6 +63,10 @@ class SeatingPlan {
             document.getElementById('studentModal').style.display = 'block';
         });
 
+        document.getElementById('saveSeatOrder').addEventListener('click', () => {
+            this.saveSeatOrder();
+        });
+
         document.getElementById('cancelModal').addEventListener('click', () => {
             document.getElementById('studentModal').style.display = 'none';
             this.clearForm();
@@ -1582,6 +1586,58 @@ class SeatingPlan {
         // Generate filename and download
         const fileName = `Notentabelle_${className.replace(/[^a-zA-Z0-9]/g, '_')}_${new Date().toISOString().split('T')[0]}.xlsx`;
         XLSX.writeFile(wb, fileName);
+    }
+
+    saveSeatOrder() {
+        if (!this.currentClassId) {
+            alert('Bitte wählen Sie zuerst eine Klasse aus.');
+            return;
+        }
+
+        // Save current class state immediately
+        this.saveCurrentClassState();
+        
+        // Show confirmation message
+        const currentClass = this.classes.get(this.currentClassId);
+        const className = currentClass ? currentClass.name : 'Aktuelle Klasse';
+        
+        // Create a temporary success message element
+        const successMessage = document.createElement('div');
+        successMessage.textContent = `Sitzordnung für "${className}" wurde gespeichert!`;
+        successMessage.style.cssText = `
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #34c759;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 20px;
+            font-weight: 500;
+            box-shadow: 0 4px 16px rgba(52, 199, 89, 0.3);
+            z-index: 10000;
+            animation: slideIn 0.3s ease;
+        `;
+        
+        // Add animation keyframes if not already added
+        if (!document.querySelector('#saveAnimation')) {
+            const style = document.createElement('style');
+            style.id = 'saveAnimation';
+            style.textContent = `
+                @keyframes slideIn {
+                    from { opacity: 0; transform: translateX(-50%) translateY(-20px); }
+                    to { opacity: 1; transform: translateX(-50%) translateY(0); }
+                }
+            `;
+            document.head.appendChild(style);
+        }
+        
+        document.body.appendChild(successMessage);
+        
+        // Remove message after 3 seconds
+        setTimeout(() => {
+            successMessage.remove();
+        }, 3000);
     }
 }
 
