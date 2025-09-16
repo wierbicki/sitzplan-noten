@@ -65,9 +65,6 @@ class SeatingPlan {
             document.getElementById('studentModal').style.display = 'block';
         });
 
-        document.getElementById('saveSeatOrder').addEventListener('click', () => {
-            this.saveSeatOrder();
-        });
 
         document.getElementById('cancelModal').addEventListener('click', () => {
             document.getElementById('studentModal').style.display = 'none';
