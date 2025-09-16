@@ -333,6 +333,7 @@ body {
     border: 2px dashed rgba(255, 149, 0, 0.5);
     background: rgba(255, 149, 0, 0.1);
     position: relative;
+    grid-column: span 2; /* Doppeltisch nimmt zwei Spalten ein */
 }
 
 .seat.double-table::before {
@@ -390,24 +391,12 @@ body {
     box-shadow: 0 4px 12px rgba(0, 122, 255, 0.2);
 }
 
-/* Double table layout adjustments */
+/* Double table layout adjustments - each student same size as single table */
 .seat.double-table {
-    min-height: 140px; /* Slightly taller for two students */
+    min-height: 120px; /* Same height as single tables */
 }
 
-.seat.double-table .student-card {
-    font-size: 0.9em; /* Slightly smaller text to fit two cards */
-}
-
-.seat.double-table .student-card .student-name {
-    font-size: 0.8em;
-}
-
-.seat.double-table .student-card .student-counter {
-    font-size: 0.8em;
-    min-width: 20px;
-    min-height: 20px;
-}
+/* Remove font size restrictions so students are same size as in single tables */
 
 .student-card {
     background: white;
@@ -453,15 +442,16 @@ body {
     flex-direction: row !important;
     align-items: stretch !important;
     justify-content: space-between !important;
-    gap: 5px !important;
-    padding: 5px !important;
+    gap: 15px !important; /* Match grid gap for proper sizing */
+    padding: 0 !important; /* No padding to give students full space */
 }
 
 .seat.double-table .student-card {
-    flex: 1;
+    flex: 1 1 0; /* Equal space for each student */
     position: relative;
-    height: auto;
-    max-width: calc(50% - 2.5px);
+    height: 100%; /* Full height to match single tables */
+    max-width: none; /* Remove width constraints */
+    padding: 0; /* No padding to match single table sizing */
 }
 
 .student-card-actions {
