@@ -390,6 +390,25 @@ body {
     box-shadow: 0 4px 12px rgba(0, 122, 255, 0.2);
 }
 
+/* Double table layout adjustments */
+.seat.double-table {
+    min-height: 140px; /* Slightly taller for two students */
+}
+
+.seat.double-table .student-card {
+    font-size: 0.9em; /* Slightly smaller text to fit two cards */
+}
+
+.seat.double-table .student-card .student-name {
+    font-size: 0.8em;
+}
+
+.seat.double-table .student-card .student-counter {
+    font-size: 0.8em;
+    min-width: 20px;
+    min-height: 20px;
+}
+
 .student-card {
     background: white;
     border-radius: 12px;
@@ -408,6 +427,15 @@ body {
 }
 
 .seat .student-card {
+    border-radius: 12px;
+    margin: 0;
+    padding: 8px;
+    min-height: 80px;
+    font-size: 0.9em;
+}
+
+/* Single table styling - student card takes full seat */
+.seat.single-table .student-card {
     position: absolute;
     top: 0;
     left: 0;
@@ -417,8 +445,23 @@ body {
     height: 100%;
     min-width: auto;
     padding: 0;
-    margin: 0;
-    border-radius: 12px;
+}
+
+/* Double table styling - side by side layout */
+.seat.double-table {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: stretch !important;
+    justify-content: space-between !important;
+    gap: 5px !important;
+    padding: 5px !important;
+}
+
+.seat.double-table .student-card {
+    flex: 1;
+    position: relative;
+    height: auto;
+    max-width: calc(50% - 2.5px);
 }
 
 .student-card-actions {

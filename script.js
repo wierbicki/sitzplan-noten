@@ -67,7 +67,7 @@ class SeatingPlan {
             
             this.seats.push({
                 element: seat,
-                student: null,
+                students: [], // Array to hold multiple students (max 1 for single, max 2 for double)
                 id: i,
                 type: seatType
             });
@@ -398,7 +398,19 @@ class SeatingPlan {
 
         // Toggle between single and double
         const newType = seat.type === 'single' ? 'double' : 'single';
+        const oldType = seat.type;
         seat.type = newType;
+        
+        // Handle capacity enforcement: if switching from double to single with 2 students, move extra student to pool
+        if (oldType === 'double' && newType === 'single' && seat.students.length > 1) {
+            // Keep the first student, move others back to pool
+            const studentsToKeep = seat.students.slice(0, 1);
+            const studentsToRemove = seat.students.slice(1);
+            
+            seat.students = studentsToKeep;
+            
+            // The removed students are still in the main students array, so they'll appear in the pool
+        }
         
         // Update visual styling
         seat.element.classList.remove('single-table', 'double-table');
@@ -406,6 +418,12 @@ class SeatingPlan {
         
         // Store in seatTypes map
         this.seatTypes.set(seatIndex, newType);
+        
+        // Update the seat display to reflect changes
+        this.updateSeatDisplay(seat);
+        
+        // Update student pool to show any students that were moved back
+        this.renderStudentPool();
         
         // Save state
         this.saveCurrentClassState();
@@ -470,18 +488,29 @@ class SeatingPlan {
     getSeatAssignments() {
         const assignments = new Map();
         this.seats.forEach((seat, index) => {
-            if (seat.student) {
-                assignments.set(index, seat.student.id);
+            if (seat.students.length > 0) {
+                assignments.set(index, seat.students.map(s => s.id));
             }
         });
         return assignments;
     }
 
     loadSeatAssignments(assignments) {
-        assignments.forEach((studentId, seatIndex) => {
-            const student = this.students.find(s => s.id === studentId);
-            if (student && this.seats[seatIndex]) {
-                this.assignStudentToSeat(studentId, seatIndex);
+        assignments.forEach((studentIds, seatIndex) => {
+            if (Array.isArray(studentIds)) {
+                // New format: array of student IDs
+                studentIds.forEach(studentId => {
+                    const student = this.students.find(s => s.id === studentId);
+                    if (student && this.seats[seatIndex]) {
+                        this.assignStudentToSeat(studentId, seatIndex);
+                    }
+                });
+            } else {
+                // Old format: single student ID (for backward compatibility)
+                const student = this.students.find(s => s.id === studentIds);
+                if (student && this.seats[seatIndex]) {
+                    this.assignStudentToSeat(studentIds, seatIndex);
+                }
             }
         });
     }
@@ -707,7 +736,7 @@ class SeatingPlan {
         }
 
         // Check if student is seated (define before using)
-        const isSeated = this.seats.some(seat => seat.student && seat.student.id === student.id);
+        const isSeated = this.seats.some(seat => seat.students.some(st => st.id === student.id));
 
         // Add edit button
         const actions = document.createElement('div');
@@ -967,40 +996,39 @@ class SeatingPlan {
 
         if (!student || !targetSeat) return;
 
+        // Check capacity based on seat type
+        const maxCapacity = targetSeat.type === 'double' ? 2 : 1;
+        
         // Find current seat of the dragged student
-        const currentSeat = this.seats.find(s => s.student && s.student.id == studentId);
-
-        // If target seat is occupied, swap students
-        if (targetSeat.student) {
-            const targetStudent = targetSeat.student;
-
-            if (currentSeat) {
-                // Swap: move target student to current seat
-                currentSeat.student = targetStudent;
-                currentSeat.element.innerHTML = '';
-                currentSeat.element.classList.add('occupied');
-                const targetStudentCard = this.createStudentCard(targetStudent);
-                currentSeat.element.appendChild(targetStudentCard);
-            } else {
-                // Move target student back to pool
-                targetSeat.student = null;
-                targetSeat.element.classList.remove('occupied');
-                targetSeat.element.innerHTML = '<span style="color: #8e8e93; font-size: 12px;">' + (targetSeat.id + 1) + '</span>';
-            }
-        } else if (currentSeat) {
-            // Clear current seat
-            currentSeat.student = null;
-            currentSeat.element.classList.remove('occupied');
-            currentSeat.element.innerHTML = '<span style="color: #8e8e93; font-size: 12px;">' + (currentSeat.id + 1) + '</span>';
+        const currentSeat = this.seats.find(s => s.students.some(st => st.id == studentId));
+        
+        // Remove student from current seat if they have one
+        if (currentSeat) {
+            currentSeat.students = currentSeat.students.filter(st => st.id != studentId);
         }
 
-        // Assign dragged student to target seat
-        targetSeat.student = student;
-        targetSeat.element.innerHTML = '';
-        targetSeat.element.classList.add('occupied');
+        // Check if target seat has space
+        if (targetSeat.students.length >= maxCapacity) {
+            // Seat is full - move the first student back to pool or to current seat
+            const displacedStudent = targetSeat.students.shift();
+            
+            if (currentSeat && currentSeat.students.length < (currentSeat.type === 'double' ? 2 : 1)) {
+                // Move displaced student to the original seat if there's space
+                currentSeat.students.push(displacedStudent);
+            } else {
+                // No space in current seat - displaced student goes back to pool
+                // (Student is already in the students array, so they'll appear in the pool automatically)
+            }
+        }
 
-        const studentCard = this.createStudentCard(student);
-        targetSeat.element.appendChild(studentCard);
+        // Add student to target seat
+        targetSeat.students.push(student);
+
+        // Update visual representation for both seats
+        this.updateSeatDisplay(targetSeat);
+        if (currentSeat) {
+            this.updateSeatDisplay(currentSeat);
+        }
 
         // Update student pool
         this.renderStudentPool();
@@ -1009,21 +1037,45 @@ class SeatingPlan {
         this.saveCurrentClassState();
     }
 
-    removeStudentFromSeat(studentId) {
-        const seat = this.seats.find(s => s.student && s.student.id == studentId);
-        if (seat) {
-            seat.student = null;
+    updateSeatDisplay(seat) {
+        // Clear the seat content
+        seat.element.innerHTML = '';
+        
+        // Reset inline styles to let CSS take over
+        seat.element.style.display = '';
+        seat.element.style.flexDirection = '';
+        seat.element.style.gap = '';
+        seat.element.style.padding = '';
+        
+        if (seat.students.length === 0) {
+            // Empty seat
             seat.element.classList.remove('occupied');
             seat.element.innerHTML = '<span style="color: #8e8e93; font-size: 12px;">' + (seat.id + 1) + '</span>';
+        } else {
+            // Occupied seat
+            seat.element.classList.add('occupied');
+            
+            // Add all students to the seat (CSS handles the layout)
+            seat.students.forEach(student => {
+                const studentCard = this.createStudentCard(student);
+                seat.element.appendChild(studentCard);
+            });
+        }
+    }
+
+    removeStudentFromSeat(studentId) {
+        const seat = this.seats.find(s => s.students.some(st => st.id == studentId));
+        if (seat) {
+            seat.students = seat.students.filter(st => st.id != studentId);
+            this.updateSeatDisplay(seat);
         }
         this.renderStudentPool();
     }
 
     resetAllSeats() {
         this.seats.forEach(seat => {
-            seat.student = null;
-            seat.element.classList.remove('occupied');
-            seat.element.innerHTML = '<span style="color: #8e8e93; font-size: 12px;">' + (seat.id + 1) + '</span>';
+            seat.students = [];
+            this.updateSeatDisplay(seat);
         });
         this.studentCounters.clear(); // Clear counters as well
         this.renderStudentPool();
@@ -1226,13 +1278,14 @@ class SeatingPlan {
 
     updateStudentEverywhere(student) {
         // Update in seats if assigned
-        const assignedSeat = this.seats.find(seat => seat.student && seat.student.id === student.id);
+        const assignedSeat = this.seats.find(seat => seat.students.some(st => st.id === student.id));
         if (assignedSeat) {
-            assignedSeat.student = student;
-            assignedSeat.element.innerHTML = '';
-            assignedSeat.element.classList.add('occupied');
-            const studentCard = this.createStudentCard(student);
-            assignedSeat.element.appendChild(studentCard);
+            // Update the student object in the array
+            const studentIndex = assignedSeat.students.findIndex(st => st.id === student.id);
+            if (studentIndex !== -1) {
+                assignedSeat.students[studentIndex] = student;
+            }
+            this.updateSeatDisplay(assignedSeat);
         }
 
         // Update student pool
@@ -1303,38 +1356,44 @@ class SeatingPlan {
     }
 
     updateCounterDisplay(studentId) {
-        const seat = this.seats.find(s => s.student && s.student.id == studentId);
+        const seat = this.seats.find(s => s.students.some(st => st.id == studentId));
         if (seat) {
-            const counterElement = seat.element.querySelector('.student-counter');
-            if (counterElement) {
-                if (this.showGrades) {
-                    const grade = this.calculateGrade(studentId);
-                    counterElement.textContent = grade;
-                    counterElement.classList.add('grade-display');
+            // Find the specific student card for this student
+            const studentCards = seat.element.querySelectorAll('.student-card');
+            studentCards.forEach(card => {
+                if (card.dataset.studentId == studentId) {
+                    const counterElement = card.querySelector('.student-counter');
+                    if (counterElement) {
+                        if (this.showGrades) {
+                            const grade = this.calculateGrade(studentId);
+                            counterElement.textContent = grade;
+                            counterElement.classList.add('grade-display');
 
-                    // Add grade-specific color class
-                    const gradeValue = parseFloat(grade);
-                    counterElement.classList.remove('grade-1', 'grade-2', 'grade-3', 'grade-4', 'grade-5', 'grade-6');
+                            // Add grade-specific color class
+                            const gradeValue = parseFloat(grade);
+                            counterElement.classList.remove('grade-1', 'grade-2', 'grade-3', 'grade-4', 'grade-5', 'grade-6');
 
-                    if (gradeValue >= 1.0 && gradeValue <= 1.5) {
-                        counterElement.classList.add('grade-1');
-                    } else if (gradeValue > 1.5 && gradeValue <= 2.5) {
-                        counterElement.classList.add('grade-2');
-                    } else if (gradeValue > 2.5 && gradeValue <= 3.5) {
-                        counterElement.classList.add('grade-3');
-                    } else if (gradeValue > 3.5 && gradeValue <= 4.5) {
-                        counterElement.classList.add('grade-4');
-                    } else if (gradeValue > 4.5 && gradeValue <= 5.5) {
-                        counterElement.classList.add('grade-5');
-                    } else {
-                        counterElement.classList.add('grade-6');
+                            if (gradeValue >= 1.0 && gradeValue <= 1.5) {
+                                counterElement.classList.add('grade-1');
+                            } else if (gradeValue > 1.5 && gradeValue <= 2.5) {
+                                counterElement.classList.add('grade-2');
+                            } else if (gradeValue > 2.5 && gradeValue <= 3.5) {
+                                counterElement.classList.add('grade-3');
+                            } else if (gradeValue > 3.5 && gradeValue <= 4.5) {
+                                counterElement.classList.add('grade-4');
+                            } else if (gradeValue > 4.5 && gradeValue <= 5.5) {
+                                counterElement.classList.add('grade-5');
+                            } else {
+                                counterElement.classList.add('grade-6');
+                            }
+                        } else {
+                            const count = this.studentCounters.get(studentId) || 0;
+                            counterElement.textContent = count;
+                            counterElement.classList.remove('grade-display', 'grade-1', 'grade-2', 'grade-3', 'grade-4', 'grade-5', 'grade-6');
+                        }
                     }
-                } else {
-                    const count = this.studentCounters.get(studentId) || 0;
-                    counterElement.textContent = count;
-                    counterElement.classList.remove('grade-display', 'grade-1', 'grade-2', 'grade-3', 'grade-4', 'grade-5', 'grade-6');
                 }
-            }
+            });
         }
     }
 
