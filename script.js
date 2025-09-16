@@ -220,6 +220,12 @@ class SeatingPlan {
         if (savedClasses) {
             const classesData = JSON.parse(savedClasses);
             this.classes = new Map(classesData.map(cls => [cls.id, cls]));
+            
+            // Automatically select the first available class after loading
+            if (this.classes.size > 0) {
+                const firstClassId = this.classes.keys().next().value;
+                this.switchClass(firstClassId);
+            }
         }
 
         // If no classes exist, create a default one
