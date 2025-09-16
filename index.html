@@ -18,6 +18,7 @@
                         <option value="">Klasse auswählen...</option>
                     </select>
                     <button class="btn-primary" id="addClass">Neue Klasse</button>
+                    <button class="btn-secondary" id="editClass" style="display: none;">Klasse bearbeiten</button>
                     <button class="btn-danger" id="deleteClass" style="display: none;">Klasse löschen</button>
                 </div>
             </div>
@@ -108,10 +109,10 @@
         </div>
     </div>
 
-    <!-- Modal for adding classes -->
+    <!-- Modal for adding/editing classes -->
     <div class="modal" id="classModal">
         <div class="modal-content">
-            <h3>Neue Klasse anlegen</h3>
+            <h3 id="classModalTitle">Neue Klasse anlegen</h3>
             <form id="classForm">
                 <div class="form-group">
                     <label for="className">Klassenname:</label>
@@ -119,7 +120,7 @@
                 </div>
                 <div class="modal-actions">
                     <button type="button" class="btn-secondary" id="cancelClassModal">Abbrechen</button>
-                    <button type="submit" class="btn-primary">Anlegen</button>
+                    <button type="submit" class="btn-primary" id="submitClassButton">Anlegen</button>
                 </div>
             </form>
         </div>

@@ -17,6 +17,8 @@ class SeatingPlan {
         this.startingGrade = 4.0; // Default starting grade
         this.isDragging = false; // Track if drag operation is active
         this.dragStartPosition = null; // Track initial position for drag detection
+        this.isEditingClass = false; // Track if we're editing a class
+        this.editingClassId = null; // Track which class is being edited
         this.init();
     }
 
@@ -146,17 +148,27 @@ class SeatingPlan {
 
         // Class management events
         document.getElementById('addClass').addEventListener('click', () => {
-            document.getElementById('classModal').style.display = 'block';
+            this.openClassModal('add');
+        });
+
+        document.getElementById('editClass').addEventListener('click', () => {
+            this.openClassModal('edit');
         });
 
         document.getElementById('cancelClassModal').addEventListener('click', () => {
             document.getElementById('classModal').style.display = 'none';
             document.getElementById('classForm').reset();
+            this.isEditingClass = false;
+            this.editingClassId = null;
         });
 
         document.getElementById('classForm').addEventListener('submit', (e) => {
             e.preventDefault();
-            this.addClass();
+            if (this.isEditingClass) {
+                this.updateClass();
+            } else {
+                this.addClass();
+            }
         });
 
         document.getElementById('classSelect').addEventListener('change', (e) => {
@@ -205,6 +217,8 @@ class SeatingPlan {
             if (e.target === e.currentTarget) {
                 document.getElementById('classModal').style.display = 'none';
                 document.getElementById('classForm').reset();
+                this.isEditingClass = false;
+                this.editingClassId = null;
             }
         });
 
@@ -284,6 +298,48 @@ class SeatingPlan {
 
         document.getElementById('classModal').style.display = 'none';
         document.getElementById('classForm').reset();
+        this.isEditingClass = false;
+        this.editingClassId = null;
+    }
+
+    openClassModal(mode) {
+        if (mode === 'edit') {
+            if (!this.currentClassId) return;
+            
+            this.isEditingClass = true;
+            this.editingClassId = this.currentClassId;
+            
+            const classData = this.classes.get(this.currentClassId);
+            document.getElementById('className').value = classData.name;
+            document.getElementById('classModalTitle').textContent = 'Klasse bearbeiten';
+            document.getElementById('submitClassButton').textContent = 'Speichern';
+        } else {
+            this.isEditingClass = false;
+            this.editingClassId = null;
+            
+            document.getElementById('className').value = '';
+            document.getElementById('classModalTitle').textContent = 'Neue Klasse anlegen';
+            document.getElementById('submitClassButton').textContent = 'Anlegen';
+        }
+        
+        document.getElementById('classModal').style.display = 'block';
+    }
+
+    updateClass() {
+        const newClassName = document.getElementById('className').value.trim();
+        if (!newClassName || !this.editingClassId) return;
+
+        const classData = this.classes.get(this.editingClassId);
+        classData.name = newClassName;
+        
+        this.classes.set(this.editingClassId, classData);
+        this.saveClasses();
+        this.updateClassSelect();
+
+        document.getElementById('classModal').style.display = 'none';
+        document.getElementById('classForm').reset();
+        this.isEditingClass = false;
+        this.editingClassId = null;
     }
 
     switchClass(classId) {
@@ -291,6 +347,8 @@ class SeatingPlan {
             this.currentClassId = null;
             this.students = [];
             this.studentCounters = new Map();
+            document.getElementById('editClass').style.display = 'none';
+            document.getElementById('deleteClass').style.display = 'none';
             this.updateUI();
             return;
         }
@@ -318,6 +376,7 @@ class SeatingPlan {
 
         // Update class selector
         document.getElementById('classSelect').value = classId;
+        document.getElementById('editClass').style.display = this.currentClassId ? 'inline-block' : 'none';
         document.getElementById('deleteClass').style.display = this.classes.size > 1 ? 'inline-block' : 'none';
     }
 
