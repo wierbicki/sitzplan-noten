@@ -19,6 +19,8 @@ class SeatingPlan {
         this.dragStartPosition = null; // Track initial position for drag detection
         this.isEditingClass = false; // Track if we're editing a class
         this.editingClassId = null; // Track which class is being edited
+        this.seatEditMode = false; // Track if we're in seat editing mode
+        this.seatTypes = new Map(); // Store seat types (single/double)
         this.init();
     }
 
@@ -50,12 +52,24 @@ class SeatingPlan {
             seat.addEventListener('dragover', this.handleDragOver.bind(this));
             seat.addEventListener('drop', this.handleDrop.bind(this));
             seat.addEventListener('dragleave', this.handleDragLeave.bind(this));
+            
+            // Add seat type click handler
+            seat.addEventListener('click', (e) => {
+                if (this.seatEditMode) {
+                    e.preventDefault();
+                    this.toggleSeatType(i);
+                }
+            });
 
             grid.appendChild(seat);
+            const seatType = this.seatTypes.get(i) || 'single';
+            seat.classList.add(seatType + '-table');
+            
             this.seats.push({
                 element: seat,
                 student: null,
-                id: i
+                id: i,
+                type: seatType
             });
         }
     }
@@ -151,9 +165,12 @@ class SeatingPlan {
             this.openClassModal('add');
         });
 
-        document.getElementById('editClass').addEventListener('click', () => {
-            this.openClassModal('edit');
-        });
+        const editClassButton = document.getElementById('editClass');
+        if (editClassButton) {
+            editClassButton.addEventListener('click', () => {
+                this.openClassModal('edit');
+            });
+        }
 
         document.getElementById('cancelClassModal').addEventListener('click', () => {
             document.getElementById('classModal').style.display = 'none';
@@ -190,6 +207,14 @@ class SeatingPlan {
         document.getElementById('importFile').addEventListener('change', (e) => {
             this.importData(e.target.files[0]);
         });
+
+        // Seat type editing events
+        const toggleSeatEditButton = document.getElementById('toggleSeatEdit');
+        if (toggleSeatEditButton) {
+            toggleSeatEditButton.addEventListener('click', () => {
+                this.toggleSeatEditMode();
+            });
+        }
 
         // Dropdown menu functionality
         document.getElementById('moreOptions').addEventListener('click', (e) => {
@@ -233,7 +258,12 @@ class SeatingPlan {
         const savedClasses = localStorage.getItem('seatingPlan_classes');
         if (savedClasses) {
             const classesData = JSON.parse(savedClasses);
-            this.classes = new Map(classesData.map(cls => [cls.id, cls]));
+            this.classes = new Map(classesData.map(cls => ({
+                ...cls,
+                studentCounters: new Map(cls.studentCounters || []),
+                seatAssignments: new Map(cls.seatAssignments || []),
+                seatTypes: new Map(cls.seatTypes || [])
+            })).map(cls => [cls.id, cls]));
             
             // Automatically select the first available class after loading
             if (this.classes.size > 0) {
@@ -261,6 +291,7 @@ class SeatingPlan {
             ],
             studentCounters: new Map(),
             seatAssignments: new Map(),
+            seatTypes: new Map(),
             gridRows: 5,
             gridColumns: 6,
             showGrades: false,
@@ -283,6 +314,7 @@ class SeatingPlan {
             students: [],
             studentCounters: new Map(),
             seatAssignments: new Map(),
+            seatTypes: new Map(),
             gridRows: 5,
             gridColumns: 6,
             showGrades: false,
@@ -342,6 +374,43 @@ class SeatingPlan {
         this.editingClassId = null;
     }
 
+    toggleSeatEditMode() {
+        this.seatEditMode = !this.seatEditMode;
+        const grid = document.getElementById('classroomGrid');
+        const button = document.getElementById('toggleSeatEdit');
+        
+        if (this.seatEditMode) {
+            grid.classList.add('seat-edit-mode');
+            button.textContent = 'Bearbeitung beenden';
+            button.style.background = '#ff3b30';
+            button.style.color = 'white';
+        } else {
+            grid.classList.remove('seat-edit-mode');
+            button.textContent = 'Tischtypen bearbeiten';
+            button.style.background = '';
+            button.style.color = '';
+        }
+    }
+
+    toggleSeatType(seatIndex) {
+        const seat = this.seats[seatIndex];
+        if (!seat) return;
+
+        // Toggle between single and double
+        const newType = seat.type === 'single' ? 'double' : 'single';
+        seat.type = newType;
+        
+        // Update visual styling
+        seat.element.classList.remove('single-table', 'double-table');
+        seat.element.classList.add(newType + '-table');
+        
+        // Store in seatTypes map
+        this.seatTypes.set(seatIndex, newType);
+        
+        // Save state
+        this.saveCurrentClassState();
+    }
+
     switchClass(classId) {
         if (!classId || !this.classes.has(classId)) {
             this.currentClassId = null;
@@ -364,6 +433,7 @@ class SeatingPlan {
 
         this.students = classData.students || [];
         this.studentCounters = new Map(classData.studentCounters || []);
+        this.seatTypes = new Map(classData.seatTypes || []);
         this.gridRows = classData.gridRows || 5;
         this.gridColumns = classData.gridColumns || 6;
         this.showGrades = classData.showGrades || false;
@@ -386,6 +456,7 @@ class SeatingPlan {
         const classData = this.classes.get(this.currentClassId);
         classData.students = this.students;
         classData.studentCounters = this.studentCounters;
+        classData.seatTypes = this.seatTypes;
         classData.seatAssignments = this.getSeatAssignments();
         classData.gridRows = this.gridRows;
         classData.gridColumns = this.gridColumns;
@@ -455,7 +526,8 @@ class SeatingPlan {
         const classesData = Array.from(this.classes.entries()).map(([id, classData]) => ({
             ...classData,
             studentCounters: Array.from(classData.studentCounters.entries()),
-            seatAssignments: Array.from(classData.seatAssignments.entries())
+            seatAssignments: Array.from(classData.seatAssignments.entries()),
+            seatTypes: Array.from(classData.seatTypes?.entries() || [])
         }));
         localStorage.setItem('seatingPlan_classes', JSON.stringify(classesData));
     }

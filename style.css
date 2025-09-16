@@ -323,6 +323,73 @@ body {
     transform: scale(1.05);
 }
 
+/* Seat type styling */
+.seat.single-table {
+    border: 2px dashed rgba(52, 199, 89, 0.5);
+    background: rgba(52, 199, 89, 0.1);
+}
+
+.seat.double-table {
+    border: 2px dashed rgba(255, 149, 0, 0.5);
+    background: rgba(255, 149, 0, 0.1);
+    position: relative;
+}
+
+.seat.double-table::before {
+    content: '👥';
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    font-size: 14px;
+    opacity: 0.6;
+}
+
+.seat.single-table::before {
+    content: '👤';
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    font-size: 14px;
+    opacity: 0.6;
+}
+
+.seat.occupied.single-table,
+.seat.occupied.double-table {
+    background: transparent;
+    border: 2px solid transparent;
+}
+
+.seat.occupied.single-table::before,
+.seat.occupied.double-table::before {
+    display: none;
+}
+
+/* Show table type indicators in edit mode even for occupied seats */
+.seat-edit-mode .seat.occupied.single-table {
+    border: 2px dashed rgba(52, 199, 89, 0.5) !important;
+    background: rgba(52, 199, 89, 0.1) !important;
+}
+
+.seat-edit-mode .seat.occupied.double-table {
+    border: 2px dashed rgba(255, 149, 0, 0.5) !important;
+    background: rgba(255, 149, 0, 0.1) !important;
+}
+
+.seat-edit-mode .seat.occupied.single-table::before,
+.seat-edit-mode .seat.occupied.double-table::before {
+    display: block !important;
+}
+
+/* Seat edit mode styling */
+.seat-edit-mode .seat {
+    cursor: pointer;
+}
+
+.seat-edit-mode .seat:hover {
+    transform: scale(1.02);
+    box-shadow: 0 4px 12px rgba(0, 122, 255, 0.2);
+}
+
 .student-card {
     background: white;
     border-radius: 12px;
