@@ -232,6 +232,12 @@ class SeatingPlan {
             const classesData = JSON.parse(savedClasses);
             this.classes = new Map(classesData.map(cls => [cls.id, cls]));
             
+            // Normalize all classes data types after loading from localStorage
+            this.classes.forEach((classData, classId) => {
+                classData.studentCounters = new Map(classData.studentCounters || []);
+                classData.seatAssignments = new Map(classData.seatAssignments || []);
+            });
+            
             // Automatically select the first available class after loading
             if (this.classes.size > 0) {
                 const firstClassId = this.classes.keys().next().value;
@@ -368,7 +374,8 @@ class SeatingPlan {
 
         // Update UI
         this.createSeats();
-        this.loadSeatAssignments(classData.seatAssignments || new Map());
+        const seatAssignments = new Map(classData.seatAssignments || []);
+        this.loadSeatAssignments(seatAssignments);
         this.updateUI();
 
         // Update class selector
@@ -1664,57 +1671,6 @@ class SeatingPlan {
         XLSX.writeFile(wb, fileName);
     }
 
-    saveSeatOrder() {
-        if (!this.currentClassId) {
-            alert('Bitte wählen Sie zuerst eine Klasse aus.');
-            return;
-        }
-
-        // Save current class state immediately
-        this.saveCurrentClassState();
-        
-        // Show confirmation message
-        const currentClass = this.classes.get(this.currentClassId);
-        const className = currentClass ? currentClass.name : 'Aktuelle Klasse';
-        
-        // Create a temporary success message element
-        const successMessage = document.createElement('div');
-        successMessage.textContent = `Sitzordnung für "${className}" wurde gespeichert!`;
-        successMessage.style.cssText = `
-            position: fixed;
-            top: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: #34c759;
-            color: white;
-            padding: 12px 24px;
-            border-radius: 20px;
-            font-weight: 500;
-            box-shadow: 0 4px 16px rgba(52, 199, 89, 0.3);
-            z-index: 10000;
-            animation: slideIn 0.3s ease;
-        `;
-        
-        // Add animation keyframes if not already added
-        if (!document.querySelector('#saveAnimation')) {
-            const style = document.createElement('style');
-            style.id = 'saveAnimation';
-            style.textContent = `
-                @keyframes slideIn {
-                    from { opacity: 0; transform: translateX(-50%) translateY(-20px); }
-                    to { opacity: 1; transform: translateX(-50%) translateY(0); }
-                }
-            `;
-            document.head.appendChild(style);
-        }
-        
-        document.body.appendChild(successMessage);
-        
-        // Remove message after 3 seconds
-        setTimeout(() => {
-            successMessage.remove();
-        }, 3000);
-    }
 }
 
 // Initialize the application
