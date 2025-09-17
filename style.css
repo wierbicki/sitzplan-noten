@@ -451,8 +451,9 @@ body {
     margin: -8px;
 }
 
-.seat .student-card-actions {
-    top: -40px;
+.seat .student-card-actions,
+.desk .student-card-actions {
+    top: -55px;
     padding: 12px;
     margin: -12px;
     z-index: 9999;
