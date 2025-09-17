@@ -21,6 +21,7 @@ class SeatingPlan {
         this.isEditingClass = false; // Track if we're editing a class
         this.editingClassId = null; // Track which class is being edited
         this.nextDeskId = 0; // Unique desk ID counter
+        this.deskRemovalMode = false;
         
         // Cache bound functions to fix event listener memory leak
         this.boundHandleDeskMouseMove = this.handleDeskMouseMove.bind(this);
@@ -117,10 +118,14 @@ class SeatingPlan {
         deskEl.addEventListener('mousedown', this.handleDeskMouseDown.bind(this));
 
         this.updateDeskContent(desk, deskEl);
+        
         return deskEl;
     }
 
     updateDeskContent(desk, deskElement) {
+        // Preserve removal button if it exists
+        const existingRemoveBtn = deskElement.querySelector('.desk-remove-btn');
+        
         deskElement.innerHTML = '';
 
         if (desk.students.length === 0) {
@@ -156,6 +161,13 @@ class SeatingPlan {
         // Color coding: empty desks gray, occupied desks green
         deskElement.classList.toggle('desk-empty', desk.students.length === 0);
         deskElement.classList.toggle('desk-occupied', desk.students.length > 0);
+        
+        // Re-add removal button if we're in removal mode
+        if (this.deskRemovalMode && existingRemoveBtn) {
+            deskElement.appendChild(existingRemoveBtn);
+        } else if (this.deskRemovalMode) {
+            this.addRemovalButtonToDesk(desk);
+        }
     }
 
     handleDeskMouseDown(event) {
@@ -355,18 +367,62 @@ class SeatingPlan {
     }
 
     enterDeskRemovalMode() {
-        // Simple implementation - could be enhanced with visual feedback
-        alert('Klicken Sie auf einen Tisch, um ihn zu entfernen.');
-        
-        const removeHandler = (event) => {
-            const desk = this.getDeskFromElement(event.target);
-            if (desk) {
+        this.deskRemovalMode = true;
+        this.showDeskRemovalButtons();
+        document.getElementById('removeDesk').style.display = 'none';
+        document.getElementById('exitRemovalMode').style.display = 'inline-block';
+    }
+
+    exitDeskRemovalMode() {
+        this.deskRemovalMode = false;
+        this.hideDeskRemovalButtons();
+        document.getElementById('removeDesk').style.display = 'inline-block';
+        document.getElementById('exitRemovalMode').style.display = 'none';
+    }
+
+    showDeskRemovalButtons() {
+        this.desks.forEach(desk => {
+            this.addRemovalButtonToDesk(desk);
+        });
+    }
+
+    hideDeskRemovalButtons() {
+        document.querySelectorAll('.desk-remove-btn').forEach(btn => {
+            btn.remove();
+        });
+    }
+
+    addRemovalButtonToDesk(desk) {
+        if (desk.element && !desk.element.querySelector('.desk-remove-btn')) {
+            const removeBtn = document.createElement('button');
+            removeBtn.className = 'desk-remove-btn';
+            removeBtn.innerHTML = '✖';
+            removeBtn.title = 'Tisch entfernen';
+            
+            // Prevent drag events on remove button
+            removeBtn.addEventListener('mousedown', (e) => {
+                e.stopPropagation();
+                e.preventDefault();
+            });
+            removeBtn.addEventListener('touchstart', (e) => {
+                e.stopPropagation();
+                e.preventDefault();
+            });
+            removeBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                e.preventDefault();
                 this.removeDesk(desk.id);
-                document.removeEventListener('click', removeHandler);
-            }
-        };
-        
-        document.addEventListener('click', removeHandler);
+            });
+            
+            // Position button in top-right corner of desk
+            removeBtn.style.position = 'absolute';
+            removeBtn.style.top = '-8px';
+            removeBtn.style.right = '-8px';
+            removeBtn.style.zIndex = '1000';
+            
+            // Desk is already absolute positioned, no need to change it
+            desk.element.appendChild(removeBtn);
+        }
     }
 
     removeDesk(deskId) {
@@ -387,6 +443,12 @@ class SeatingPlan {
         
         // Remove from desks array
         this.desks.splice(deskIndex, 1);
+        
+        // If in removal mode, refresh the removal buttons
+        if (this.deskRemovalMode) {
+            this.hideDeskRemovalButtons();
+            this.showDeskRemovalButtons();
+        }
         
         // Update student pool
         this.renderStudentPool();
@@ -431,6 +493,10 @@ class SeatingPlan {
 
         document.getElementById('removeDesk').addEventListener('click', () => {
             this.enterDeskRemovalMode();
+        });
+
+        document.getElementById('exitRemovalMode').addEventListener('click', () => {
+            this.exitDeskRemovalMode();
         });
 
         // Student pool drop handlers for drag and drop back to pool

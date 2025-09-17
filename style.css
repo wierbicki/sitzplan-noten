@@ -341,6 +341,29 @@ body {
     cursor: move;
 }
 
+/* Desk removal button styles */
+.desk-remove-btn {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    border: none;
+    background: #ff3b30;
+    color: white;
+    font-size: 12px;
+    font-weight: bold;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    transition: all 0.2s ease;
+}
+
+.desk-remove-btn:hover {
+    background: #d70015;
+    transform: scale(1.1);
+}
+
 .desk-single {
     min-width: 100px;
     min-height: 80px;
