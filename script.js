@@ -846,8 +846,16 @@ class SeatingPlan {
         // Update UI
         this.createClassroom();
         
-        // Load student assignments from saved desk data
+        // Load student assignments from saved desk data AFTER desks are rendered
         this.loadStudentAssignments(classData.desks || []);
+        
+        // Update desk contents to reflect loaded assignments
+        this.desks.forEach(desk => {
+            if (desk.element) {
+                this.updateDeskContent(desk, desk.element);
+            }
+        });
+        
         this.updateUI();
         
         // Save migrated data to persist any ID fixes
@@ -906,7 +914,7 @@ class SeatingPlan {
             if (desk && savedDesk.students) {
                 desk.students = [];
                 savedDesk.students.forEach(savedStudent => {
-                    const student = this.students.find(s => s.id === savedStudent.id);
+                    const student = this.students.find(s => s.id == savedStudent.id);
                     if (student && desk.students.length < desk.capacity) {
                         // Restore desk position if it exists
                         if (savedStudent.deskPosition) {
@@ -925,7 +933,7 @@ class SeatingPlan {
                 const desk = this.desks[deskIndex];
                 desk.students = [];
                 studentIds.forEach(studentId => {
-                    const student = this.students.find(s => s.id === studentId);
+                    const student = this.students.find(s => s.id == studentId);
                     if (student && desk.students.length < desk.capacity) {
                         desk.students.push(student);
                     }
