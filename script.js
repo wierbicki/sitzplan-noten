@@ -126,20 +126,20 @@ class SeatingPlan {
                     if (desk.students.length === 1) {
                         // Single student: consistent spacing based on position
                         if (student.deskPosition === 'left') {
-                            studentCard.style.marginLeft = '8px';
+                            studentCard.style.marginLeft = '18px';
                             studentCard.style.marginRight = 'auto';
                         } else if (student.deskPosition === 'right') {
                             studentCard.style.marginLeft = 'auto';
-                            studentCard.style.marginRight = '8px';
+                            studentCard.style.marginRight = '18px';
                         }
                     } else if (desk.students.length === 2) {
-                        // Two students: balanced spacing like in the image
+                        // Two students: balanced spacing with 18px outer margins
                         if (student.deskPosition === 'left') {
-                            studentCard.style.marginLeft = '8px';
-                            studentCard.style.marginRight = '6px';
-                        } else if (student.deskPosition === 'right') {
-                            studentCard.style.marginLeft = '6px';
+                            studentCard.style.marginLeft = '18px';
                             studentCard.style.marginRight = '8px';
+                        } else if (student.deskPosition === 'right') {
+                            studentCard.style.marginLeft = '8px';
+                            studentCard.style.marginRight = '18px';
                         }
                     }
                     
