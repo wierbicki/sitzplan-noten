@@ -135,17 +135,12 @@ class SeatingPlan {
             desk.students.forEach((student, index) => {
                 const studentCard = this.createStudentCard(student);
                 
-                // For double desks, apply positioning based on deskPosition property
+                // For double desks, apply consistent positioning based on deskPosition property
                 if (desk.type === 'double' && student.deskPosition) {
                     if (desk.students.length === 1) {
-                        // Single student: position with more space like in the image
-                        if (student.deskPosition === 'left') {
-                            studentCard.style.marginLeft = '8px';
-                            studentCard.style.marginRight = 'auto';
-                        } else if (student.deskPosition === 'right') {
-                            studentCard.style.marginLeft = 'auto';
-                            studentCard.style.marginRight = '8px';
-                        }
+                        // Single student: always consistent spacing
+                        studentCard.style.marginLeft = '8px';
+                        studentCard.style.marginRight = 'auto';
                     } else if (desk.students.length === 2) {
                         // Two students: balanced spacing like in the image
                         if (student.deskPosition === 'left') {
@@ -1526,12 +1521,8 @@ class SeatingPlan {
                     }
                 }
             } else {
-                // No existing student, assign the drop position (default to left for center)
-                if (dropPosition === 'left' || dropPosition === 'right') {
-                    student.deskPosition = dropPosition;
-                } else {
-                    student.deskPosition = 'left'; // Default to left
-                }
+                // No existing student, always place first student on the left for consistency
+                student.deskPosition = 'left';
             }
         } else {
             delete student.deskPosition;
