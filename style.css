@@ -454,18 +454,19 @@ body {
 
 .seat .student-card-actions,
 .desk .student-card-actions {
-    top: -38px;
-    padding: 6px;
-    margin: -6px;
+    top: -32px;
+    padding: 4px;
+    margin: -4px;
     z-index: 9999;
-    border-radius: 8px;
+    border-radius: 6px;
     background: rgba(255, 255, 255, 0.95);
-    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
 
 .student-card:hover .student-card-actions,
-.student-card-actions:hover {
-    display: flex;
+.student-card-actions:hover,
+.student-card .student-card-actions:hover {
+    display: flex !important;
 }
 
 .btn-edit {
