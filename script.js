@@ -1446,9 +1446,9 @@ class SeatingPlan {
     }
 
     removeStudentFromDesk(studentId) {
-        const desk = this.desks.find(d => d.students.some(s => s.id == studentId));
+        const desk = this.desks.find(d => d.students.some(s => s.id === studentId));
         if (desk) {
-            const studentIndex = desk.students.findIndex(s => s.id == studentId);
+            const studentIndex = desk.students.findIndex(s => s.id === studentId);
             if (studentIndex > -1) {
                 desk.students.splice(studentIndex, 1);
                 this.updateDeskContent(desk, desk.element);
@@ -1643,7 +1643,7 @@ class SeatingPlan {
 
     moveStudentToPool(studentId) {
         // Clear deskPosition when moving to pool
-        const student = this.students.find(s => s.id == studentId);
+        const student = this.students.find(s => s.id === studentId);
         if (student) {
             delete student.deskPosition;
         }
@@ -1655,15 +1655,15 @@ class SeatingPlan {
     }
 
     deleteStudentCompletely(studentId) {
-        const student = this.students.find(s => s.id == studentId);
+        const student = this.students.find(s => s.id === studentId);
         if (!student) return;
 
         if (confirm(`Möchten Sie ${student.firstName} ${student.lastName} wirklich komplett löschen?`)) {
-            // Remove from any seat
-            this.removeStudentFromSeat(studentId);
+            // Remove from any desk
+            this.removeStudentFromDesk(studentId);
 
             // Remove from students array
-            this.students = this.students.filter(s => s.id != studentId);
+            this.students = this.students.filter(s => s.id !== studentId);
 
             // Clear counter for this student
             this.studentCounters.delete(studentId);
