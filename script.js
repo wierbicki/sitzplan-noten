@@ -105,7 +105,7 @@ class SeatingPlan {
             deskEl.style.width = '100px';
             deskEl.style.height = '80px';
         } else {
-            deskEl.style.width = '230px';
+            deskEl.style.width = '225px';
             deskEl.style.height = '80px';
         }
 
@@ -318,7 +318,7 @@ class SeatingPlan {
 
     addDesk(type) {
         // Find a free position for the new desk
-        const deskWidth = type === 'single' ? 100 : 230;
+        const deskWidth = type === 'single' ? 100 : 225;
         const deskHeight = 80;
         const freePosition = this.findFreePosition(deskWidth, deskHeight);
         
