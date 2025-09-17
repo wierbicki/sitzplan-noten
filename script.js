@@ -100,7 +100,7 @@ class SeatingPlan {
 
         // Set different sizes for single vs double desks
         if (desk.type === 'single') {
-            deskEl.style.width = '120px';
+            deskEl.style.width = '100px';
             deskEl.style.height = '80px';
         } else {
             deskEl.style.width = '200px';
@@ -130,27 +130,22 @@ class SeatingPlan {
             deskElement.appendChild(label);
         } else {
             // Desk with students
-            if (desk.type === 'double' && desk.students.length === 1) {
-                // For single student on double desk, position based on drop location
-                const student = desk.students[0];
+            desk.students.forEach((student, index) => {
                 const studentCard = this.createStudentCard(student);
                 
-                if (student.deskPosition === 'left') {
-                    studentCard.style.alignSelf = 'flex-start';
-                    studentCard.style.marginRight = 'auto';
-                } else if (student.deskPosition === 'right') {
-                    studentCard.style.alignSelf = 'flex-end';
-                    studentCard.style.marginLeft = 'auto';
+                // For double desks, apply positioning based on deskPosition property
+                if (desk.type === 'double' && student.deskPosition) {
+                    if (student.deskPosition === 'left') {
+                        studentCard.style.alignSelf = 'flex-start';
+                        studentCard.style.marginRight = desk.students.length === 1 ? 'auto' : '5px';
+                    } else if (student.deskPosition === 'right') {
+                        studentCard.style.alignSelf = 'flex-end';
+                        studentCard.style.marginLeft = desk.students.length === 1 ? 'auto' : '5px';
+                    }
                 }
                 
                 deskElement.appendChild(studentCard);
-            } else {
-                // Regular positioning for other cases
-                desk.students.forEach(student => {
-                    const studentCard = this.createStudentCard(student);
-                    deskElement.appendChild(studentCard);
-                });
-            }
+            });
         }
 
         // Update styling based on occupancy
@@ -1243,8 +1238,26 @@ class SeatingPlan {
         }
 
         // Store drop position for double desks
-        if (targetDesk.type === 'double' && dropPosition !== 'center') {
-            student.deskPosition = dropPosition;
+        if (targetDesk.type === 'double') {
+            // Check if there's already a student on the desk
+            if (targetDesk.students.length > 0) {
+                const existingStudent = targetDesk.students[0];
+                
+                // If the existing student has a position, place new student on opposite side
+                if (existingStudent.deskPosition === 'left') {
+                    student.deskPosition = 'right';
+                } else if (existingStudent.deskPosition === 'right') {
+                    student.deskPosition = 'left';
+                } else {
+                    // If existing student has no position, assign based on drop
+                    student.deskPosition = dropPosition === 'center' ? 'left' : dropPosition;
+                    // Also assign a position to the existing student (opposite)
+                    existingStudent.deskPosition = student.deskPosition === 'left' ? 'right' : 'left';
+                }
+            } else {
+                // No existing student, assign the drop position (default to left for center)
+                student.deskPosition = dropPosition === 'center' ? 'left' : dropPosition;
+            }
         } else {
             delete student.deskPosition;
         }
