@@ -1461,7 +1461,9 @@ class SeatingPlan {
         const student = this.students.find(s => s.id == studentId);
         const targetDesk = this.desks.find(d => d.id === deskId);
 
-        if (!student || !targetDesk) return;
+        if (!student || !targetDesk) {
+            return;
+        }
 
         // Check if desk is full
         if (targetDesk.students.length >= targetDesk.capacity) {
@@ -1494,13 +1496,23 @@ class SeatingPlan {
                     student.deskPosition = 'left';
                 } else {
                     // If existing student has no position, assign based on drop
-                    student.deskPosition = dropPosition === 'center' ? 'left' : dropPosition;
-                    // Also assign a position to the existing student (opposite)
-                    existingStudent.deskPosition = student.deskPosition === 'left' ? 'right' : 'left';
+                    // Ensure we always have valid positions
+                    if (dropPosition === 'left' || dropPosition === 'right') {
+                        student.deskPosition = dropPosition;
+                        existingStudent.deskPosition = dropPosition === 'left' ? 'right' : 'left';
+                    } else {
+                        // Default assignment when drop position is center or invalid
+                        student.deskPosition = 'left';
+                        existingStudent.deskPosition = 'right';
+                    }
                 }
             } else {
                 // No existing student, assign the drop position (default to left for center)
-                student.deskPosition = dropPosition === 'center' ? 'left' : dropPosition;
+                if (dropPosition === 'left' || dropPosition === 'right') {
+                    student.deskPosition = dropPosition;
+                } else {
+                    student.deskPosition = 'left'; // Default to left
+                }
             }
         } else {
             delete student.deskPosition;

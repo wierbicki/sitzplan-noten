@@ -379,6 +379,10 @@ body {
     justify-content: flex-start;
 }
 
+.desk-double.desk-empty {
+    justify-content: center;
+}
+
 .desk.occupied {
     background: transparent;
     border: 2px solid transparent;
