@@ -372,7 +372,7 @@ body {
 }
 
 .desk-double {
-    min-width: 210px;
+    min-width: 220px;
     min-height: 80px;
     background: rgba(0, 122, 255, 0.1);
     border-color: rgba(0, 122, 255, 0.3);
