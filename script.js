@@ -20,6 +20,11 @@ class SeatingPlan {
         this.dragStartPosition = null; // Track initial position for drag detection
         this.isEditingClass = false; // Track if we're editing a class
         this.editingClassId = null; // Track which class is being edited
+        
+        // Cache bound functions to fix event listener memory leak
+        this.boundHandleDeskMouseMove = this.handleDeskMouseMove.bind(this);
+        this.boundHandleDeskMouseUp = this.handleDeskMouseUp.bind(this);
+        
         this.init();
     }
 
@@ -33,8 +38,10 @@ class SeatingPlan {
     createClassroom() {
         const classroom = document.getElementById('classroomGrid');
         classroom.innerHTML = '';
-        this.desks = [];
-
+        
+        // Don't reset desks array - this would wipe out loaded data
+        // Only initialize default desks if array is empty
+        
         // Change from grid to flexible positioning
         classroom.style.position = 'relative';
         classroom.style.gridTemplateColumns = 'none';
@@ -135,7 +142,7 @@ class SeatingPlan {
     }
 
     handleDeskMouseDown(event) {
-        // For now, prevent desk movement during student drag operations
+        // Prevent desk movement during student drag operations
         if (this.draggedElement) {
             return;
         }
@@ -143,8 +150,82 @@ class SeatingPlan {
         const desk = this.getDeskFromElement(event.target);
         if (!desk) return;
         
-        // Simple desk repositioning - can be enhanced later
+        // Get the actual desk element (not a child element)
+        const deskElement = event.target.closest('.desk');
+        if (!deskElement) return;
+        
+        // Start desk dragging
+        this.isDraggingDesk = true;
+        this.currentDraggedDesk = desk;
+        
+        const rect = deskElement.getBoundingClientRect();
+        const classroomRect = document.getElementById('classroomGrid').getBoundingClientRect();
+        
+        this.deskDragOffset = {
+            x: event.clientX - rect.left,
+            y: event.clientY - rect.top
+        };
+        
+        deskElement.style.zIndex = '1000';
+        
+        // Add global mouse move and mouse up listeners
+        document.addEventListener('mousemove', this.boundHandleDeskMouseMove);
+        document.addEventListener('mouseup', this.boundHandleDeskMouseUp);
+        
         event.preventDefault();
+    }
+
+    handleDeskMouseMove(event) {
+        if (!this.isDraggingDesk || !this.currentDraggedDesk) return;
+        
+        const classroomRect = document.getElementById('classroomGrid').getBoundingClientRect();
+        
+        const newX = event.clientX - classroomRect.left - this.deskDragOffset.x;
+        const newY = event.clientY - classroomRect.top - this.deskDragOffset.y;
+        
+        // Get actual desk element dimensions instead of using hard-coded values
+        const deskElement = this.currentDraggedDesk.element;
+        const deskRect = deskElement.getBoundingClientRect();
+        const deskWidth = deskRect.width;
+        const deskHeight = deskRect.height;
+        
+        // Keep desk within classroom bounds using actual dimensions
+        const minX = 0;
+        const minY = 0;
+        const maxX = classroomRect.width - deskWidth;
+        const maxY = classroomRect.height - deskHeight;
+        
+        const boundedX = Math.max(minX, Math.min(maxX, newX));
+        const boundedY = Math.max(minY, Math.min(maxY, newY));
+        
+        // Update desk position
+        this.currentDraggedDesk.element.style.left = boundedX + 'px';
+        this.currentDraggedDesk.element.style.top = boundedY + 'px';
+        
+        // Update desk data
+        this.currentDraggedDesk.x = boundedX;
+        this.currentDraggedDesk.y = boundedY;
+    }
+
+    handleDeskMouseUp(event) {
+        if (!this.isDraggingDesk) return;
+        
+        // Reset z-index
+        if (this.currentDraggedDesk && this.currentDraggedDesk.element) {
+            this.currentDraggedDesk.element.style.zIndex = '';
+        }
+        
+        // Clean up
+        this.isDraggingDesk = false;
+        this.currentDraggedDesk = null;
+        this.deskDragOffset = null;
+        
+        // Remove global listeners
+        document.removeEventListener('mousemove', this.boundHandleDeskMouseMove);
+        document.removeEventListener('mouseup', this.boundHandleDeskMouseUp);
+        
+        // Save state
+        this.saveCurrentClassState();
     }
 
     getDeskFromElement(element) {
@@ -457,7 +538,8 @@ class SeatingPlan {
             name: className,
             students: [],
             studentCounters: new Map(),
-            seatAssignments: new Map(),
+            deskAssignments: new Map(),
+            desks: [],
             gridRows: 5,
             gridColumns: 6,
             showGrades: false,
@@ -539,13 +621,14 @@ class SeatingPlan {
 
         this.students = classData.students || [];
         this.studentCounters = new Map(classData.studentCounters || []);
+        this.desks = classData.desks || [];
         this.gridRows = classData.gridRows || 5;
         this.gridColumns = classData.gridColumns || 6;
         this.showGrades = classData.showGrades || false;
         this.startingGrade = classData.startingGrade || 4.0;
 
         // Update UI
-        this.createSeats();
+        this.createClassroom();
         const deskAssignments = new Map(classData.deskAssignments || []);
         this.loadDeskAssignments(deskAssignments);
         this.updateUI();
@@ -562,6 +645,16 @@ class SeatingPlan {
         const classData = this.classes.get(this.currentClassId);
         classData.students = this.students;
         classData.studentCounters = this.studentCounters;
+        // Remove DOM element references before saving to prevent JSON.stringify errors
+        classData.desks = this.desks.map(desk => ({
+            id: desk.id,
+            type: desk.type,
+            x: desk.x,
+            y: desk.y,
+            capacity: desk.capacity,
+            students: desk.students
+            // element property excluded - will be rebuilt on load
+        }));
         classData.deskAssignments = this.getDeskAssignments();
         classData.gridRows = this.gridRows;
         classData.gridColumns = this.gridColumns;
