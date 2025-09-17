@@ -350,7 +350,7 @@ body {
     min-height: 80px;
     background: rgba(0, 122, 255, 0.1);
     border-color: rgba(0, 122, 255, 0.3);
-    justify-content: flex-start;
+    justify-content: center;
 }
 
 .desk.occupied {
