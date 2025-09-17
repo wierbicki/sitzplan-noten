@@ -60,22 +60,8 @@ class SeatingPlan {
     }
 
     createDefaultDesks() {
-        // Create only one default double desk
-        const defaultDesks = [
-            { type: 'double', x: 200, y: 150, capacity: 2, students: [] }
-        ];
-
-        defaultDesks.forEach((deskData) => {
-            this.desks.push({
-                id: this.nextDeskId++,
-                type: deskData.type,
-                x: deskData.x,
-                y: deskData.y,
-                capacity: deskData.capacity,
-                students: [],
-                element: null
-            });
-        });
+        // No default desks - start with empty classroom
+        // Users can add desks manually using the "Einzeltisch" or "Doppeltisch" buttons
     }
 
     renderDesks() {
