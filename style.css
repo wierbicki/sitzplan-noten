@@ -339,7 +339,7 @@ body {
 }
 
 .desk-single {
-    min-width: 120px;
+    min-width: 100px;
     min-height: 80px;
     background: rgba(52, 199, 89, 0.1);
     border-color: rgba(52, 199, 89, 0.3);
