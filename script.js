@@ -1902,12 +1902,25 @@ class SeatingPlan {
 
         // Convert classes Map to exportable format
         this.classes.forEach((classData, id) => {
+            // Sanitize desk data for export (remove DOM references)
+            const sanitizedDesks = (classData.desks || []).map(desk => ({
+                id: desk.id,
+                type: desk.type,
+                x: desk.x,
+                y: desk.y,
+                capacity: desk.capacity,
+                students: desk.students || []
+                // element property is excluded - it's runtime only
+            }));
+
             const exportClass = {
                 id: id,
                 name: classData.name,
                 students: classData.students || [],
                 studentCounters: Array.from((classData.studentCounters || new Map()).entries()),
                 seatAssignments: Array.from((classData.seatAssignments || new Map()).entries()),
+                desks: sanitizedDesks,
+                deskAssignments: Array.from((classData.deskAssignments || new Map()).entries()),
                 gridRows: classData.gridRows || 5,
                 gridColumns: classData.gridColumns || 6,
                 showGrades: classData.showGrades || false,
@@ -1966,6 +1979,8 @@ class SeatingPlan {
                         students: classData.students || [],
                         studentCounters: new Map(classData.studentCounters || []),
                         seatAssignments: new Map(classData.seatAssignments || []),
+                        desks: classData.desks || [],
+                        deskAssignments: new Map(classData.deskAssignments || []),
                         gridRows: classData.gridRows || 5,
                         gridColumns: classData.gridColumns || 6,
                         showGrades: classData.showGrades || false,
@@ -1982,6 +1997,9 @@ class SeatingPlan {
                     const firstClassId = this.classes.keys().next().value;
                     this.switchClass(firstClassId);
                 }
+
+                // Rebuild desk DOM elements after import
+                this.createClassroom();
 
                 // Update UI
                 this.updateClassSelect();
