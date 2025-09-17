@@ -1517,9 +1517,20 @@ class SeatingPlan {
     }
 
     updateCounterDisplay(studentId) {
-        const seat = this.seats.find(s => s.student && s.student.id == studentId);
-        if (seat) {
-            const counterElement = seat.element.querySelector('.student-counter');
+        // Find the desk that contains this student
+        const desk = this.desks.find(d => d.students && d.students.some(s => s.id == studentId));
+        if (desk && desk.element) {
+            // Find the specific student card within the desk
+            const studentCards = desk.element.querySelectorAll('.student-card');
+            let counterElement = null;
+            
+            for (const card of studentCards) {
+                if (card.dataset.studentId == studentId) {
+                    counterElement = card.querySelector('.student-counter');
+                    break;
+                }
+            }
+            
             if (counterElement) {
                 if (this.showGrades) {
                     const grade = this.calculateGrade(studentId);
