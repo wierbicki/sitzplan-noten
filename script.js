@@ -105,7 +105,7 @@ class SeatingPlan {
             deskEl.style.width = '100px';
             deskEl.style.height = '80px';
         } else {
-            deskEl.style.width = '220px';
+            deskEl.style.width = '230px';
             deskEl.style.height = '80px';
         }
 
@@ -318,7 +318,7 @@ class SeatingPlan {
 
     addDesk(type) {
         // Find a free position for the new desk
-        const deskWidth = type === 'single' ? 100 : 220;
+        const deskWidth = type === 'single' ? 100 : 230;
         const deskHeight = 80;
         const freePosition = this.findFreePosition(deskWidth, deskHeight);
         
@@ -793,7 +793,16 @@ class SeatingPlan {
 
         this.students = classData.students || [];
         this.studentCounters = new Map(classData.studentCounters || []);
-        this.desks = classData.desks || [];
+        // Create fresh desk objects from saved data (without element references)
+        this.desks = (classData.desks || []).map(deskData => ({
+            id: deskData.id,
+            type: deskData.type,
+            x: deskData.x,
+            y: deskData.y,
+            capacity: deskData.capacity,
+            students: deskData.students || [],
+            element: null // Will be set by renderDesks
+        }));
         this.gridRows = classData.gridRows || 5;
         this.gridColumns = classData.gridColumns || 6;
         this.showGrades = classData.showGrades || false;
@@ -804,7 +813,7 @@ class SeatingPlan {
             // First pass: collect valid numeric IDs and find maximum
             const validIds = this.desks
                 .map(desk => desk.id)
-                .filter(id => typeof id === 'number' && !isNaN(id));
+                .filter(id => typeof id === 'number' && !isNaN(id) && id >= 0);
             
             const maxId = validIds.length > 0 ? Math.max(...validIds) : -1;
             this.nextDeskId = maxId + 1;
@@ -812,7 +821,7 @@ class SeatingPlan {
             // Second pass: migrate duplicate or invalid desk IDs
             const seenIds = new Set();
             this.desks.forEach(desk => {
-                if (typeof desk.id !== 'number' || isNaN(desk.id) || seenIds.has(desk.id)) {
+                if (typeof desk.id !== 'number' || isNaN(desk.id) || desk.id < 0 || seenIds.has(desk.id)) {
                     // Assign new unique ID to duplicate or invalid desk
                     desk.id = this.nextDeskId++;
                 }
@@ -884,7 +893,10 @@ class SeatingPlan {
                         desk.students.push(student);
                     }
                 });
-                this.updateDeskContent(desk, desk.element);
+                // Only update desk content if the element exists
+                if (desk.element) {
+                    this.updateDeskContent(desk, desk.element);
+                }
             }
         });
     }
