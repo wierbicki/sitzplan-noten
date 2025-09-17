@@ -1669,6 +1669,12 @@ class SeatingPlan {
         // Update all displays
         this.renderStudentPool();
         this.updateAllCounterDisplays();
+        
+        // Re-render all desk contents to show grades/counters
+        this.desks.forEach(desk => {
+            this.updateDeskContent(desk, desk.element);
+        });
+        
         this.saveCurrentClassState();
     }
 
@@ -1696,9 +1702,11 @@ class SeatingPlan {
     }
 
     updateAllCounterDisplays() {
-        this.seats.forEach(seat => {
-            if (seat.student) {
-                this.updateCounterDisplay(seat.student.id);
+        this.desks.forEach(desk => {
+            if (desk.students) {
+                desk.students.forEach(student => {
+                    this.updateCounterDisplay(student.id);
+                });
             }
         });
     }
