@@ -138,10 +138,10 @@ class SeatingPlan {
                 // For double desks, apply positioning based on deskPosition property
                 if (desk.type === 'double' && student.deskPosition) {
                     if (student.deskPosition === 'left') {
-                        studentCard.style.marginRight = desk.students.length === 1 ? 'auto' : '5px';
+                        studentCard.style.marginRight = '5px';
                         studentCard.style.marginLeft = '0';
                     } else if (student.deskPosition === 'right') {
-                        studentCard.style.marginLeft = desk.students.length === 1 ? 'auto' : '5px';
+                        studentCard.style.marginLeft = '5px';
                         studentCard.style.marginRight = '0';
                     }
                 }
