@@ -2540,7 +2540,14 @@ class SeatingPlan {
     }
 
     exportGradesToPDF() {
-        if (!this.sortedStudentsWithGrades || !this.currentClassId) {
+        if (!this.currentClassId || this.students.length === 0) {
+            alert('Keine Notendaten zum Exportieren verfügbar.');
+            return;
+        }
+
+        // Check if we have any grade data
+        const hasGradeData = this.students.some(student => this.gradeTable.has(student.id));
+        if (!hasGradeData) {
             alert('Keine Notendaten zum Exportieren verfügbar.');
             return;
         }
@@ -2552,6 +2559,15 @@ class SeatingPlan {
         const currentClass = this.classes.get(this.currentClassId);
         const className = currentClass ? currentClass.name : 'Unbekannte Klasse';
 
+        // Get all date columns from grade table
+        const dateColumns = new Set();
+        this.gradeTable.forEach(studentGrades => {
+            studentGrades.forEach((grade, date) => {
+                dateColumns.add(date);
+            });
+        });
+        const sortedDateColumns = Array.from(dateColumns).sort();
+
         // Title
         doc.setFontSize(16);
         doc.text(`Notentabelle - ${className}`, 20, 20);
@@ -2561,37 +2577,76 @@ class SeatingPlan {
         doc.text(`Erstellt am: ${new Date().toLocaleDateString('de-DE')}`, 20, 30);
 
         // Table headers
-        doc.setFontSize(12);
-        doc.text('Nachname', 20, 50);
-        doc.text('Vorname', 80, 50);
-        doc.text('Note', 140, 50);
+        doc.setFontSize(8);
+        let xPosition = 20;
+        doc.text('Nachname', xPosition, 50);
+        xPosition += 30;
+        doc.text('Vorname', xPosition, 50);
+        xPosition += 30;
+        
+        // Add date column headers
+        sortedDateColumns.forEach(date => {
+            doc.text(date, xPosition, 50);
+            xPosition += 25;
+        });
+        
+        // Add average column
+        doc.text('Durchschnitt', xPosition, 50);
 
         // Line under headers
-        doc.line(20, 55, 180, 55);
+        doc.line(20, 55, xPosition + 25, 55);
 
         // Table content
-        doc.setFontSize(10);
+        doc.setFontSize(8);
         let yPosition = 65;
 
-        this.sortedStudentsWithGrades.forEach((student, index) => {
+        // Sort students by last name
+        const sortedStudents = [...this.students].sort((a, b) => 
+            a.lastName.localeCompare(b.lastName)
+        );
+
+        sortedStudents.forEach((student, index) => {
             // Check if we need a new page
             if (yPosition > 270) {
                 doc.addPage();
                 yPosition = 20;
                 
                 // Repeat headers on new page
-                doc.setFontSize(12);
-                doc.text('Nachname', 20, yPosition);
-                doc.text('Vorname', 80, yPosition);
-                doc.text('Note', 140, yPosition);
-                doc.line(20, yPosition + 5, 180, yPosition + 5);
+                doc.setFontSize(8);
+                let headerX = 20;
+                doc.text('Nachname', headerX, yPosition);
+                headerX += 30;
+                doc.text('Vorname', headerX, yPosition);
+                headerX += 30;
+                
+                sortedDateColumns.forEach(date => {
+                    doc.text(date, headerX, yPosition);
+                    headerX += 25;
+                });
+                doc.text('Durchschnitt', headerX, yPosition);
+                doc.line(20, yPosition + 5, headerX + 25, yPosition + 5);
                 yPosition += 15;
-                doc.setFontSize(10);
             }
 
-            doc.text(student.lastName, 20, yPosition);
-            doc.text(student.firstName, 80, yPosition);
-            doc.text(student.grade, 140, yPosition);
+            // Student data
+            let dataX = 20;
+            doc.text(student.lastName, dataX, yPosition);
+            dataX += 30;
+            doc.text(student.firstName, dataX, yPosition);
+            dataX += 30;
+
+            // Grades for each date column
+            const studentGrades = this.gradeTable.get(student.id) || new Map();
+            sortedDateColumns.forEach(date => {
+                const grade = studentGrades.get(date) || '-';
+                doc.text(grade.toString(), dataX, yPosition);
+                dataX += 25;
+            });
+
+            // Calculate and display average
+            const grades = Array.from(studentGrades.values()).map(g => parseFloat(g)).filter(g => !isNaN(g));
+            const average = grades.length > 0 ? (grades.reduce((sum, g) => sum + g, 0) / grades.length).toFixed(1) : '-';
+            doc.text(average.toString(), dataX, yPosition);
             
             yPosition += 10;
         });
@@ -2602,7 +2657,14 @@ class SeatingPlan {
     }
 
     exportGradesToExcel() {
-        if (!this.sortedStudentsWithGrades || !this.currentClassId) {
+        if (!this.currentClassId || this.students.length === 0) {
+            alert('Keine Notendaten zum Exportieren verfügbar.');
+            return;
+        }
+
+        // Check if we have any grade data
+        const hasGradeData = this.students.some(student => this.gradeTable.has(student.id));
+        if (!hasGradeData) {
             alert('Keine Notendaten zum Exportieren verfügbar.');
             return;
         }
@@ -2611,29 +2673,68 @@ class SeatingPlan {
         const currentClass = this.classes.get(this.currentClassId);
         const className = currentClass ? currentClass.name : 'Unbekannte Klasse';
 
+        // Get all date columns from grade table
+        const dateColumns = new Set();
+        this.gradeTable.forEach(studentGrades => {
+            studentGrades.forEach((grade, date) => {
+                dateColumns.add(date);
+            });
+        });
+        const sortedDateColumns = Array.from(dateColumns).sort();
+
         // Prepare data for Excel export
         const excelData = [];
         
         // Add header row
-        excelData.push(['Nachname', 'Vorname', 'Note']);
+        const headerRow = ['Nachname', 'Vorname', ...sortedDateColumns, 'Durchschnitt'];
+        excelData.push(headerRow);
+        
+        // Sort students by last name
+        const sortedStudents = [...this.students].sort((a, b) => 
+            a.lastName.localeCompare(b.lastName)
+        );
         
         // Add student data
-        this.sortedStudentsWithGrades.forEach(student => {
-            // Convert grade from dot to comma decimal format
-            const gradeWithComma = student.grade.replace('.', ',');
-            excelData.push([student.lastName, student.firstName, gradeWithComma]);
+        sortedStudents.forEach(student => {
+            const studentGrades = this.gradeTable.get(student.id) || new Map();
+            const row = [student.lastName, student.firstName];
+            
+            // Add grades for each date column
+            sortedDateColumns.forEach(date => {
+                const grade = studentGrades.get(date) || '';
+                // Convert grade from dot to comma decimal format for German locale
+                const gradeWithComma = grade ? grade.toString().replace('.', ',') : '';
+                row.push(gradeWithComma);
+            });
+
+            // Calculate and add average
+            const grades = Array.from(studentGrades.values()).map(g => parseFloat(g)).filter(g => !isNaN(g));
+            const average = grades.length > 0 ? (grades.reduce((sum, g) => sum + g, 0) / grades.length).toFixed(1) : '';
+            const averageWithComma = average ? average.replace('.', ',') : '';
+            row.push(averageWithComma);
+            
+            excelData.push(row);
         });
 
         // Create workbook and worksheet
         const wb = XLSX.utils.book_new();
         const ws = XLSX.utils.aoa_to_sheet(excelData);
 
-        // Set column widths
-        ws['!cols'] = [
+        // Set column widths dynamically based on number of columns
+        const columnWidths = [
             { width: 20 }, // Nachname
             { width: 20 }, // Vorname
-            { width: 10 }  // Note
         ];
+        
+        // Add width for each date column
+        sortedDateColumns.forEach(() => {
+            columnWidths.push({ width: 10 });
+        });
+        
+        // Add width for average column
+        columnWidths.push({ width: 10 });
+        
+        ws['!cols'] = columnWidths;
 
         // Style the header row
         const headerRange = XLSX.utils.decode_range(ws['!ref']);
