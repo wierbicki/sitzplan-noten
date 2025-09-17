@@ -2415,7 +2415,15 @@ class SeatingPlan {
         // Validate grade
         if (grade && (isNaN(parseFloat(grade)) || parseFloat(grade) < 1.0 || parseFloat(grade) > 6.0)) {
             alert('Bitte geben Sie eine gültige Note zwischen 1.0 und 6.0 ein.');
+            
+            // Get current saved grade for this student and column to restore it
+            const studentGrades = this.gradeTable.get(studentId);
+            const savedGrade = studentGrades ? studentGrades.get(column) || '' : '';
+            
+            // Reset to saved grade (or empty if no saved grade exists)
+            input.value = savedGrade;
             input.focus();
+            input.select(); // Select the text for easy editing
             return;
         }
 
