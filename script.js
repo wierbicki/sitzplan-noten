@@ -694,20 +694,16 @@ class SeatingPlan {
     createDefaultClass() {
         const defaultClass = {
             id: 'default_' + Date.now(),
-            name: 'Beispielklasse',
-            students: [
-                { id: Date.now() + Math.random(), firstName: 'Max', lastName: 'Mustermann', photo: null },
-                { id: Date.now() + Math.random() + 1, firstName: 'Anna', lastName: 'Schmidt', photo: null },
-                { id: Date.now() + Math.random() + 2, firstName: 'Tom', lastName: 'Weber', photo: null },
-                { id: Date.now() + Math.random() + 3, firstName: 'Lisa', lastName: 'Mueller', photo: null },
-                { id: Date.now() + Math.random() + 4, firstName: 'Paul', lastName: 'Wagner', photo: null }
-            ],
+            name: 'Meine Klasse',
+            students: [],
             studentCounters: new Map(),
-            seatAssignments: new Map(),
+            deskAssignments: new Map(),
+            desks: [], // Explicitly empty - no default desks
             gridRows: 5,
             gridColumns: 6,
             showGrades: false,
-            startingGrade: 4.0
+            startingGrade: 4.0,
+            gradeTable: new Map()
         };
 
         this.classes.set(defaultClass.id, defaultClass);
