@@ -146,7 +146,7 @@ class SeatingPlan {
                             studentCard.style.marginLeft = 'auto';
                             studentCard.style.marginRight = '8px';
                         }
-                    } else {
+                    } else if (desk.students.length === 2) {
                         // Two students: balanced spacing like in the image
                         if (student.deskPosition === 'left') {
                             studentCard.style.marginLeft = '8px';
@@ -156,6 +156,10 @@ class SeatingPlan {
                             studentCard.style.marginRight = '8px';
                         }
                     }
+                    
+                    // Reset any conflicting styles that might interfere with drag
+                    studentCard.style.position = '';
+                    studentCard.style.transform = '';
                 }
                 
                 deskElement.appendChild(studentCard);
@@ -1428,7 +1432,10 @@ class SeatingPlan {
     handleDragOver(e) {
         e.preventDefault();
         e.dataTransfer.dropEffect = 'move';
-        e.target.closest('.seat').classList.add('drag-over');
+        const deskElement = e.target.closest('.desk');
+        if (deskElement) {
+            deskElement.classList.add('drag-over');
+        }
     }
 
     handleDragLeave(e) {
