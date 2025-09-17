@@ -16,6 +16,7 @@ class SeatingPlan {
         this.counterStartTime = null; // Track when counter press started
         this.showGrades = false; // Toggle for grade display
         this.startingGrade = 4.0; // Default starting grade
+        this.gradeTable = new Map(); // Store grade table data: studentId -> Map(dateColumn -> grade)
         this.isDragging = false; // Track if drag operation is active
         this.dragStartPosition = null; // Track initial position for drag detection
         this.isEditingClass = false; // Track if we're editing a class
@@ -544,7 +545,11 @@ class SeatingPlan {
         });
 
         document.getElementById('showGradeTable').addEventListener('click', () => {
-            this.showGradeTable();
+            this.showExtendedGradeTable();
+        });
+
+        document.getElementById('addToGradeTable').addEventListener('click', () => {
+            this.addDateColumnToGradeTable();
         });
 
         document.getElementById('closeGradeTable').addEventListener('click', () => {
@@ -815,6 +820,7 @@ class SeatingPlan {
         this.gridColumns = classData.gridColumns || 6;
         this.showGrades = classData.showGrades || false;
         this.startingGrade = classData.startingGrade || 4.0;
+        this.gradeTable = new Map(classData.gradeTable || []);
 
         // Initialize nextDeskId based on existing desks to avoid ID conflicts
         if (this.desks.length > 0) {
@@ -875,6 +881,7 @@ class SeatingPlan {
         classData.gridColumns = this.gridColumns;
         classData.showGrades = this.showGrades;
         classData.startingGrade = this.startingGrade;
+        classData.gradeTable = Array.from(this.gradeTable.entries());
 
         this.classes.set(this.currentClassId, classData);
         this.saveClasses();
@@ -1003,11 +1010,13 @@ class SeatingPlan {
             toggleBtn.style.background = '#34c759';
             toggleBtn.style.color = 'white';
             gradeTableBtn.style.display = 'inline-block';
+            document.getElementById('addToGradeTable').style.display = 'inline-block';
         } else {
             toggleBtn.textContent = 'Noten anzeigen';
             toggleBtn.style.background = '';
             toggleBtn.style.color = '';
             gradeTableBtn.style.display = 'none';
+            document.getElementById('addToGradeTable').style.display = 'none';
         }
     }
 
@@ -2192,6 +2201,244 @@ class SeatingPlan {
         });
     }
 
+    addDateColumnToGradeTable() {
+        if (!this.currentClassId || !this.showGrades) {
+            alert('Bitte aktivieren Sie zuerst die Noten-Ansicht.');
+            return;
+        }
+
+        // Prompt for date column name (default: today's date)
+        const today = new Date().toLocaleDateString('de-DE');
+        const columnName = prompt('Datum für neue Spalte:', today);
+        
+        if (!columnName) {
+            return; // User cancelled
+        }
+
+        // Initialize grade table for all students if not exists
+        this.students.forEach(student => {
+            if (!this.gradeTable.has(student.id)) {
+                this.gradeTable.set(student.id, new Map());
+            }
+            
+            // Add current grade from counter as initial value for new column
+            const currentGrade = this.calculateGrade(student.id);
+            this.gradeTable.get(student.id).set(columnName, currentGrade);
+        });
+
+        // Save state and show table
+        this.saveCurrentClassState();
+        this.showExtendedGradeTable();
+    }
+
+    showExtendedGradeTable() {
+        if (!this.currentClassId || !this.showGrades) {
+            return;
+        }
+
+        // Get all date columns
+        const dateColumns = new Set();
+        this.gradeTable.forEach(studentGrades => {
+            studentGrades.forEach((grade, dateColumn) => {
+                dateColumns.add(dateColumn);
+            });
+        });
+
+        const sortedDateColumns = Array.from(dateColumns).sort();
+
+        // Collect all students with their grades
+        const studentsWithGrades = [];
+
+        this.students.forEach(student => {
+            const studentGrades = this.gradeTable.get(student.id) || new Map();
+            
+            // Calculate average
+            const grades = Array.from(studentGrades.values()).map(g => parseFloat(g)).filter(g => !isNaN(g));
+            const average = grades.length > 0 ? (grades.reduce((sum, g) => sum + g, 0) / grades.length).toFixed(1) : '-';
+
+            studentsWithGrades.push({
+                id: student.id,
+                lastName: student.lastName,
+                firstName: student.firstName,
+                grades: studentGrades,
+                average: average
+            });
+        });
+
+        // Sort by lastname, then firstname
+        studentsWithGrades.sort((a, b) => {
+            const lastNameCompare = a.lastName.localeCompare(b.lastName, 'de');
+            if (lastNameCompare !== 0) return lastNameCompare;
+            return a.firstName.localeCompare(b.firstName, 'de');
+        });
+
+        // Create table HTML
+        let tableHTML = `
+            <table class="extended-grade-table">
+                <thead>
+                    <tr>
+                        <th>Nachname</th>
+                        <th>Vorname</th>
+                        <th>Durchschnitt</th>
+        `;
+
+        // Add date column headers with edit/delete buttons
+        sortedDateColumns.forEach(dateColumn => {
+            tableHTML += `
+                <th>
+                    <div class="column-header">
+                        <span class="column-name" data-column="${dateColumn}" onclick="window.seatingPlan.editColumnName('${dateColumn}')">${dateColumn}</span>
+                        <button class="btn-small btn-danger" onclick="window.seatingPlan.deleteColumn('${dateColumn}')" title="Spalte löschen">×</button>
+                    </div>
+                </th>
+            `;
+        });
+
+        tableHTML += `
+                    </tr>
+                </thead>
+                <tbody>
+        `;
+
+        // Add student rows
+        studentsWithGrades.forEach(student => {
+            tableHTML += `
+                <tr>
+                    <td>${student.lastName}</td>
+                    <td>${student.firstName}</td>
+                    <td><strong>${student.average}</strong></td>
+            `;
+
+            // Add grade cells for each date column
+            sortedDateColumns.forEach(dateColumn => {
+                const grade = student.grades.get(dateColumn) || '';
+                const gradeValue = parseFloat(grade);
+                let gradeClass = '';
+                
+                if (!isNaN(gradeValue)) {
+                    if (gradeValue >= 1.0 && gradeValue <= 1.5) gradeClass = 'grade-1';
+                    else if (gradeValue > 1.5 && gradeValue <= 2.5) gradeClass = 'grade-2';
+                    else if (gradeValue > 2.5 && gradeValue <= 3.5) gradeClass = 'grade-3';
+                    else if (gradeValue > 3.5 && gradeValue <= 4.5) gradeClass = 'grade-4';
+                    else if (gradeValue > 4.5 && gradeValue <= 5.5) gradeClass = 'grade-5';
+                    else gradeClass = 'grade-6';
+                }
+
+                tableHTML += `
+                    <td>
+                        <input type="text" class="grade-input ${gradeClass}" 
+                               value="${grade}" 
+                               data-student-id="${student.id}" 
+                               data-column="${dateColumn}"
+                               onchange="window.seatingPlan.updateGrade(this)"
+                               onblur="window.seatingPlan.updateGrade(this)">
+                    </td>
+                `;
+            });
+
+            tableHTML += `</tr>`;
+        });
+
+        tableHTML += `
+                </tbody>
+            </table>
+        `;
+
+        // Insert table into modal and show
+        document.getElementById('gradeTableContainer').innerHTML = tableHTML;
+        document.getElementById('gradeTableModal').style.display = 'block';
+    }
+
+    editColumnName(oldName) {
+        const newName = prompt('Neuer Name für die Spalte:', oldName);
+        if (!newName || newName === oldName) {
+            return;
+        }
+
+        // Rename column in all student grade tables
+        this.gradeTable.forEach(studentGrades => {
+            if (studentGrades.has(oldName)) {
+                const grade = studentGrades.get(oldName);
+                studentGrades.delete(oldName);
+                studentGrades.set(newName, grade);
+            }
+        });
+
+        this.saveCurrentClassState();
+        this.showExtendedGradeTable();
+    }
+
+    deleteColumn(columnName) {
+        if (!confirm(`Möchten Sie die Spalte "${columnName}" wirklich löschen?`)) {
+            return;
+        }
+
+        // Remove column from all student grade tables
+        this.gradeTable.forEach(studentGrades => {
+            studentGrades.delete(columnName);
+        });
+
+        this.saveCurrentClassState();
+        this.showExtendedGradeTable();
+    }
+
+    updateGrade(input) {
+        const studentId = input.dataset.studentId;
+        const column = input.dataset.column;
+        const grade = input.value.trim();
+
+        // Validate grade
+        if (grade && (isNaN(parseFloat(grade)) || parseFloat(grade) < 1.0 || parseFloat(grade) > 6.0)) {
+            alert('Bitte geben Sie eine gültige Note zwischen 1.0 und 6.0 ein.');
+            input.focus();
+            return;
+        }
+
+        // Update grade table
+        if (!this.gradeTable.has(studentId)) {
+            this.gradeTable.set(studentId, new Map());
+        }
+        
+        if (grade) {
+            this.gradeTable.get(studentId).set(column, grade);
+        } else {
+            this.gradeTable.get(studentId).delete(column);
+        }
+
+        // Update cell styling
+        const gradeValue = parseFloat(grade);
+        input.className = 'grade-input';
+        if (!isNaN(gradeValue)) {
+            if (gradeValue >= 1.0 && gradeValue <= 1.5) input.className += ' grade-1';
+            else if (gradeValue > 1.5 && gradeValue <= 2.5) input.className += ' grade-2';
+            else if (gradeValue > 2.5 && gradeValue <= 3.5) input.className += ' grade-3';
+            else if (gradeValue > 3.5 && gradeValue <= 4.5) input.className += ' grade-4';
+            else if (gradeValue > 4.5 && gradeValue <= 5.5) input.className += ' grade-5';
+            else input.className += ' grade-6';
+        }
+
+        // Recalculate and update average for this student
+        this.updateStudentAverage(studentId);
+        
+        this.saveCurrentClassState();
+    }
+
+    updateStudentAverage(studentId) {
+        const studentGrades = this.gradeTable.get(studentId);
+        if (!studentGrades) return;
+
+        const grades = Array.from(studentGrades.values()).map(g => parseFloat(g)).filter(g => !isNaN(g));
+        const average = grades.length > 0 ? (grades.reduce((sum, g) => sum + g, 0) / grades.length).toFixed(1) : '-';
+
+        // Find and update average cell in current table
+        const row = document.querySelector(`input[data-student-id="${studentId}"]`)?.closest('tr');
+        if (row) {
+            const avgCell = row.children[2]; // Third column is average
+            avgCell.innerHTML = `<strong>${average}</strong>`;
+        }
+    }
+
+    // Keep old showGradeTable for backward compatibility
     showGradeTable() {
         if (!this.currentClassId || !this.showGrades) {
             return;
@@ -2388,5 +2635,5 @@ class SeatingPlan {
 
 // Initialize the application
 document.addEventListener('DOMContentLoaded', () => {
-    new SeatingPlan();
+    window.seatingPlan = new SeatingPlan();
 });
