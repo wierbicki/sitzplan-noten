@@ -20,6 +20,7 @@ class SeatingPlan {
         this.dragStartPosition = null; // Track initial position for drag detection
         this.isEditingClass = false; // Track if we're editing a class
         this.editingClassId = null; // Track which class is being edited
+        this.nextDeskId = 0; // Unique desk ID counter
         
         // Cache bound functions to fix event listener memory leak
         this.boundHandleDeskMouseMove = this.handleDeskMouseMove.bind(this);
@@ -67,9 +68,9 @@ class SeatingPlan {
             { type: 'double', x: 350, y: 200, capacity: 2, students: [] }
         ];
 
-        defaultDesks.forEach((deskData, index) => {
+        defaultDesks.forEach((deskData) => {
             this.desks.push({
-                id: index,
+                id: this.nextDeskId++,
                 type: deskData.type,
                 x: deskData.x,
                 y: deskData.y,
@@ -315,7 +316,7 @@ class SeatingPlan {
         }
         
         const newDesk = {
-            id: this.desks.length,
+            id: this.nextDeskId++,
             type: type,
             x: freePosition.x,
             y: freePosition.y,
@@ -732,11 +733,37 @@ class SeatingPlan {
         this.showGrades = classData.showGrades || false;
         this.startingGrade = classData.startingGrade || 4.0;
 
+        // Initialize nextDeskId based on existing desks to avoid ID conflicts
+        if (this.desks.length > 0) {
+            // First pass: collect valid numeric IDs and find maximum
+            const validIds = this.desks
+                .map(desk => desk.id)
+                .filter(id => typeof id === 'number' && !isNaN(id));
+            
+            const maxId = validIds.length > 0 ? Math.max(...validIds) : -1;
+            this.nextDeskId = maxId + 1;
+            
+            // Second pass: migrate duplicate or invalid desk IDs
+            const seenIds = new Set();
+            this.desks.forEach(desk => {
+                if (typeof desk.id !== 'number' || isNaN(desk.id) || seenIds.has(desk.id)) {
+                    // Assign new unique ID to duplicate or invalid desk
+                    desk.id = this.nextDeskId++;
+                }
+                seenIds.add(desk.id);
+            });
+        } else {
+            this.nextDeskId = 0;
+        }
+
         // Update UI
         this.createClassroom();
         const deskAssignments = new Map(classData.deskAssignments || []);
         this.loadDeskAssignments(deskAssignments);
         this.updateUI();
+        
+        // Save migrated data to persist any ID fixes
+        this.saveCurrentClassState();
 
         // Update class selector
         document.getElementById('classSelect').value = classId;
