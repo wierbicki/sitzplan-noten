@@ -913,9 +913,9 @@ class SeatingPlan {
         const select = document.getElementById('classSelect');
         select.innerHTML = '<option value="">Klasse auswählen...</option>';
 
-        // Convert classes Map to array and sort alphabetically by name
+        // Convert classes Map to array and sort with natural number ordering
         const sortedClasses = Array.from(this.classes.entries()).sort((a, b) => {
-            return a[1].name.localeCompare(b[1].name, 'de');
+            return this.naturalSort(a[1].name, b[1].name);
         });
 
         sortedClasses.forEach(([id, classData]) => {
@@ -928,6 +928,40 @@ class SeatingPlan {
         if (this.currentClassId) {
             select.value = this.currentClassId;
         }
+    }
+
+    naturalSort(a, b) {
+        // Split strings into chunks of letters and numbers
+        const chunksA = a.match(/(\d+|\D+)/g) || [];
+        const chunksB = b.match(/(\d+|\D+)/g) || [];
+        
+        const maxLength = Math.max(chunksA.length, chunksB.length);
+        
+        for (let i = 0; i < maxLength; i++) {
+            const chunkA = chunksA[i] || '';
+            const chunkB = chunksB[i] || '';
+            
+            // Check if both chunks are numbers
+            const isNumberA = /^\d+$/.test(chunkA);
+            const isNumberB = /^\d+$/.test(chunkB);
+            
+            if (isNumberA && isNumberB) {
+                // Compare as numbers
+                const numA = parseInt(chunkA, 10);
+                const numB = parseInt(chunkB, 10);
+                if (numA !== numB) {
+                    return numA - numB;
+                }
+            } else {
+                // Compare as strings (case-insensitive, German locale)
+                const result = chunkA.localeCompare(chunkB, 'de', { sensitivity: 'base' });
+                if (result !== 0) {
+                    return result;
+                }
+            }
+        }
+        
+        return 0;
     }
 
     deleteCurrentClass() {
