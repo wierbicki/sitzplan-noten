@@ -818,7 +818,15 @@ class SeatingPlan {
         this.gridColumns = classData.gridColumns || 6;
         this.showGrades = classData.showGrades || false;
         this.startingGrade = classData.startingGrade || 4.0;
-        this.gradeTable = new Map(classData.gradeTable || []);
+        // Properly reconstruct nested Map structure for gradeTable
+        this.gradeTable = new Map();
+        if (classData.gradeTable && Array.isArray(classData.gradeTable)) {
+            classData.gradeTable.forEach(([studentId, gradesData]) => {
+                // Reconstruct inner Map from the saved array
+                const studentGradesMap = new Map(gradesData || []);
+                this.gradeTable.set(studentId, studentGradesMap);
+            });
+        }
 
         // Initialize nextDeskId based on existing desks to avoid ID conflicts
         if (this.desks.length > 0) {
@@ -891,7 +899,10 @@ class SeatingPlan {
         classData.gridColumns = this.gridColumns;
         classData.showGrades = this.showGrades;
         classData.startingGrade = this.startingGrade;
-        classData.gradeTable = Array.from(this.gradeTable.entries());
+        // Properly serialize nested Map structure for gradeTable
+        classData.gradeTable = Array.from(this.gradeTable.entries()).map(([studentId, studentGradesMap]) => {
+            return [studentId, Array.from(studentGradesMap.entries())];
+        });
 
         this.classes.set(this.currentClassId, classData);
         this.saveClasses();
