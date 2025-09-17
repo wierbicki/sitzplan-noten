@@ -209,7 +209,18 @@ class SeatingPlan {
         const minX = 0;
         const minY = 0;
         const maxX = classroomRect.width - deskWidth;
-        const maxY = classroomRect.height - deskHeight;
+        
+        // Allow unlimited vertical movement - expand container if needed
+        const proposedMaxY = newY + deskHeight;
+        const classroom = document.getElementById('classroomGrid');
+        if (proposedMaxY > classroom.clientHeight - 50) {
+            // Expand the classroom container
+            const newHeight = Math.max(classroom.clientHeight, proposedMaxY + 200);
+            classroom.style.height = newHeight + 'px';
+        }
+        
+        // Use a generous maxY that allows expansion
+        const maxY = Math.max(classroomRect.height, classroom.clientHeight) - deskHeight;
         
         // Snap to grid first (25px grid for easy alignment)
         const gridSize = 25;
