@@ -1073,16 +1073,6 @@ class SeatingPlan {
             });
             actions.appendChild(moveBtn);
 
-            const deleteBtn = document.createElement('button');
-            deleteBtn.className = 'btn-edit';
-            deleteBtn.innerHTML = '✖';
-            deleteBtn.title = 'Löschen';
-            deleteBtn.style.background = '#ff3b30';
-            deleteBtn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                this.deleteStudentCompletely(student.id);
-            });
-            actions.appendChild(deleteBtn);
         }
         card.appendChild(actions);
         card.appendChild(avatar);
