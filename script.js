@@ -2031,7 +2031,6 @@ class SeatingPlan {
                     name: classData.name,
                     students: classData.students || [],
                     studentCounters: Array.from((classData.studentCounters || new Map()).entries()),
-                    seatAssignments: Array.from((classData.seatAssignments || new Map()).entries()),
                     desks: sanitizedDesks,
                     deskAssignments: Array.from((classData.deskAssignments || new Map()).entries()),
                     gridRows: classData.gridRows || 5,
