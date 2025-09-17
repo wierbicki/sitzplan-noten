@@ -350,6 +350,7 @@ body {
     min-height: 80px;
     background: rgba(0, 122, 255, 0.1);
     border-color: rgba(0, 122, 255, 0.3);
+    justify-content: flex-start;
 }
 
 .desk.occupied {
@@ -453,10 +454,13 @@ body {
 
 .seat .student-card-actions,
 .desk .student-card-actions {
-    top: -55px;
-    padding: 12px;
-    margin: -12px;
+    top: -38px;
+    padding: 6px;
+    margin: -6px;
     z-index: 9999;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.95);
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
 }
 
 .student-card:hover .student-card-actions,

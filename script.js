@@ -130,10 +130,27 @@ class SeatingPlan {
             deskElement.appendChild(label);
         } else {
             // Desk with students
-            desk.students.forEach(student => {
+            if (desk.type === 'double' && desk.students.length === 1) {
+                // For single student on double desk, position based on drop location
+                const student = desk.students[0];
                 const studentCard = this.createStudentCard(student);
+                
+                if (student.deskPosition === 'left') {
+                    studentCard.style.alignSelf = 'flex-start';
+                    studentCard.style.marginRight = 'auto';
+                } else if (student.deskPosition === 'right') {
+                    studentCard.style.alignSelf = 'flex-end';
+                    studentCard.style.marginLeft = 'auto';
+                }
+                
                 deskElement.appendChild(studentCard);
-            });
+            } else {
+                // Regular positioning for other cases
+                desk.students.forEach(student => {
+                    const studentCard = this.createStudentCard(student);
+                    deskElement.appendChild(studentCard);
+                });
+            }
         }
 
         // Update styling based on occupancy
@@ -1180,12 +1197,28 @@ class SeatingPlan {
 
             const studentId = this.draggedElement.dataset.studentId;
             const deskId = parseInt(deskElement.dataset.deskId);
+            
+            // Calculate drop position for double desks
+            let dropPosition = 'center';
+            const desk = this.desks.find(d => d.id === deskId);
+            if (desk && desk.type === 'double') {
+                const rect = deskElement.getBoundingClientRect();
+                const dropX = e.clientX - rect.left;
+                const deskWidth = rect.width;
+                
+                // Determine if dropped on left or right half
+                if (dropX < deskWidth / 2) {
+                    dropPosition = 'left';
+                } else {
+                    dropPosition = 'right';
+                }
+            }
 
-            this.assignStudentToDesk(studentId, deskId);
+            this.assignStudentToDesk(studentId, deskId, dropPosition);
         }
     }
 
-    assignStudentToDesk(studentId, deskId) {
+    assignStudentToDesk(studentId, deskId, dropPosition = 'center') {
         const student = this.students.find(s => s.id == studentId);
         const targetDesk = this.desks.find(d => d.id === deskId);
 
@@ -1207,6 +1240,13 @@ class SeatingPlan {
                 currentDesk.students.splice(studentIndex, 1);
                 this.updateDeskContent(currentDesk, currentDesk.element);
             }
+        }
+
+        // Store drop position for double desks
+        if (targetDesk.type === 'double' && dropPosition !== 'center') {
+            student.deskPosition = dropPosition;
+        } else {
+            delete student.deskPosition;
         }
 
         // Add student to target desk
@@ -1411,6 +1451,12 @@ class SeatingPlan {
     }
 
     moveStudentToPool(studentId) {
+        // Clear deskPosition when moving to pool
+        const student = this.students.find(s => s.id == studentId);
+        if (student) {
+            delete student.deskPosition;
+        }
+        
         // Only remove from desk, keep in students array
         this.removeStudentFromDesk(studentId);
         this.renderStudentPool();
