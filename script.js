@@ -137,12 +137,24 @@ class SeatingPlan {
                 
                 // For double desks, apply positioning based on deskPosition property
                 if (desk.type === 'double' && student.deskPosition) {
-                    if (student.deskPosition === 'left') {
-                        studentCard.style.marginRight = '5px';
-                        studentCard.style.marginLeft = '0';
-                    } else if (student.deskPosition === 'right') {
-                        studentCard.style.marginLeft = '5px';
-                        studentCard.style.marginRight = '0';
+                    if (desk.students.length === 1) {
+                        // Single student: position with more space like in the image
+                        if (student.deskPosition === 'left') {
+                            studentCard.style.marginLeft = '8px';
+                            studentCard.style.marginRight = 'auto';
+                        } else if (student.deskPosition === 'right') {
+                            studentCard.style.marginLeft = 'auto';
+                            studentCard.style.marginRight = '8px';
+                        }
+                    } else {
+                        // Two students: balanced spacing like in the image
+                        if (student.deskPosition === 'left') {
+                            studentCard.style.marginLeft = '8px';
+                            studentCard.style.marginRight = '6px';
+                        } else if (student.deskPosition === 'right') {
+                            studentCard.style.marginLeft = '6px';
+                            studentCard.style.marginRight = '8px';
+                        }
                     }
                 }
                 
