@@ -609,6 +609,14 @@ class SeatingPlan {
             this.importData(e.target.files[0]);
         });
 
+        document.getElementById('importImagesBtn').addEventListener('click', () => {
+            document.getElementById('importImages').click();
+        });
+
+        document.getElementById('importImages').addEventListener('change', (e) => {
+            this.importImages(e.target.files);
+        });
+
         // Dropdown menu functionality
         document.getElementById('moreOptions').addEventListener('click', (e) => {
             e.stopPropagation();
