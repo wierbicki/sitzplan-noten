@@ -813,7 +813,7 @@ class SeatingPlan {
             x: deskData.x,
             y: deskData.y,
             capacity: deskData.capacity,
-            students: deskData.students || [],
+            students: [], // Will be populated by loadDeskAssignments
             element: null // Will be set by renderDesks
         }));
         this.gridRows = classData.gridRows || 5;
@@ -847,8 +847,9 @@ class SeatingPlan {
 
         // Update UI
         this.createClassroom();
-        const deskAssignments = new Map(classData.deskAssignments || []);
-        this.loadDeskAssignments(deskAssignments);
+        
+        // Load student assignments from saved desk data
+        this.loadStudentAssignments(classData.desks || []);
         this.updateUI();
         
         // Save migrated data to persist any ID fixes
@@ -866,14 +867,17 @@ class SeatingPlan {
         const classData = this.classes.get(this.currentClassId);
         classData.students = this.students;
         classData.studentCounters = this.studentCounters;
-        // Remove DOM element references before saving to prevent JSON.stringify errors
+        // Remove DOM element references and store only student IDs to prevent JSON.stringify errors
         classData.desks = this.desks.map(desk => ({
             id: desk.id,
             type: desk.type,
             x: desk.x,
             y: desk.y,
             capacity: desk.capacity,
-            students: desk.students
+            students: desk.students.map(student => ({
+                id: student.id,
+                deskPosition: student.deskPosition
+            }))
             // element property excluded - will be rebuilt on load
         }));
         classData.deskAssignments = this.getDeskAssignments();
@@ -895,6 +899,26 @@ class SeatingPlan {
             }
         });
         return assignments;
+    }
+
+    loadStudentAssignments(savedDesks) {
+        // Load student assignments from saved desk data
+        savedDesks.forEach(savedDesk => {
+            const desk = this.desks.find(d => d.id === savedDesk.id);
+            if (desk && savedDesk.students) {
+                desk.students = [];
+                savedDesk.students.forEach(savedStudent => {
+                    const student = this.students.find(s => s.id === savedStudent.id);
+                    if (student && desk.students.length < desk.capacity) {
+                        // Restore desk position if it exists
+                        if (savedStudent.deskPosition) {
+                            student.deskPosition = savedStudent.deskPosition;
+                        }
+                        desk.students.push(student);
+                    }
+                });
+            }
+        });
     }
 
     loadDeskAssignments(assignments) {
