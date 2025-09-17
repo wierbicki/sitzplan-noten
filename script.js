@@ -2407,7 +2407,8 @@ class SeatingPlan {
     }
 
     updateGrade(input) {
-        const studentId = input.dataset.studentId;
+        // Convert studentId to number to match the student.id type used elsewhere
+        const studentId = parseFloat(input.dataset.studentId);
         const column = input.dataset.column;
         const grade = input.value.trim();
 
@@ -2448,14 +2449,16 @@ class SeatingPlan {
     }
 
     updateStudentAverage(studentId) {
-        const studentGrades = this.gradeTable.get(studentId);
+        // Ensure studentId is a number for consistent lookups
+        const numericStudentId = typeof studentId === 'string' ? parseFloat(studentId) : studentId;
+        const studentGrades = this.gradeTable.get(numericStudentId);
         if (!studentGrades) return;
 
         const grades = Array.from(studentGrades.values()).map(g => parseFloat(g)).filter(g => !isNaN(g));
         const average = grades.length > 0 ? (grades.reduce((sum, g) => sum + g, 0) / grades.length).toFixed(1) : '-';
 
         // Find and update average cell in current table
-        const row = document.querySelector(`input[data-student-id="${studentId}"]`)?.closest('tr');
+        const row = document.querySelector(`input[data-student-id="${numericStudentId}"]`)?.closest('tr');
         if (row) {
             const avgCell = row.children[2]; // Third column is average
             avgCell.innerHTML = `<strong>${average}</strong>`;
