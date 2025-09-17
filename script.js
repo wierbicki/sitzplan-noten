@@ -124,9 +124,14 @@ class SeatingPlan {
                 // For double desks, apply consistent positioning based on deskPosition property
                 if (desk.type === 'double' && student.deskPosition) {
                     if (desk.students.length === 1) {
-                        // Single student: always consistent spacing
-                        studentCard.style.marginLeft = '8px';
-                        studentCard.style.marginRight = 'auto';
+                        // Single student: consistent spacing based on position
+                        if (student.deskPosition === 'left') {
+                            studentCard.style.marginLeft = '8px';
+                            studentCard.style.marginRight = 'auto';
+                        } else if (student.deskPosition === 'right') {
+                            studentCard.style.marginLeft = 'auto';
+                            studentCard.style.marginRight = '8px';
+                        }
                     } else if (desk.students.length === 2) {
                         // Two students: balanced spacing like in the image
                         if (student.deskPosition === 'left') {
@@ -1507,8 +1512,12 @@ class SeatingPlan {
                     }
                 }
             } else {
-                // No existing student, always place first student on the left for consistency
-                student.deskPosition = 'left';
+                // No existing student, assign the drop position (default to left for center)
+                if (dropPosition === 'left' || dropPosition === 'right') {
+                    student.deskPosition = dropPosition;
+                } else {
+                    student.deskPosition = 'left'; // Default to left for center drops
+                }
             }
         } else {
             delete student.deskPosition;
