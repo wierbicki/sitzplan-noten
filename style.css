@@ -389,6 +389,25 @@ body {
     flex-wrap: wrap;
 }
 
+/* Desk color coding */
+.desk-empty {
+    background-color: #d1d1d6 !important; /* Gray for empty desks */
+    border-color: #a1a1a6 !important;
+}
+
+.desk-empty .desk-label {
+    color: #666 !important;
+}
+
+.desk-occupied {
+    background-color: #c3f0c3 !important; /* Light green for occupied desks */
+    border-color: #4caf50 !important;
+}
+
+.desk-occupied .desk-label {
+    color: #2e7d32 !important;
+}
+
 .student-card {
     background: white;
     border-radius: 12px;

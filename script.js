@@ -139,6 +139,10 @@ class SeatingPlan {
         // Update styling based on occupancy
         deskElement.classList.toggle('occupied', desk.students.length > 0);
         deskElement.classList.toggle('full', desk.students.length >= desk.capacity);
+        
+        // Color coding: empty desks gray, occupied desks green
+        deskElement.classList.toggle('desk-empty', desk.students.length === 0);
+        deskElement.classList.toggle('desk-occupied', desk.students.length > 0);
     }
 
     handleDeskMouseDown(event) {
@@ -195,8 +199,14 @@ class SeatingPlan {
         const maxX = classroomRect.width - deskWidth;
         const maxY = classroomRect.height - deskHeight;
         
-        const boundedX = Math.max(minX, Math.min(maxX, newX));
-        const boundedY = Math.max(minY, Math.min(maxY, newY));
+        // Snap to grid first (25px grid for easy alignment)
+        const gridSize = 25;
+        let snappedX = Math.round(newX / gridSize) * gridSize;
+        let snappedY = Math.round(newY / gridSize) * gridSize;
+        
+        // Then ensure bounds are respected after snapping
+        const boundedX = Math.max(minX, Math.min(maxX, snappedX));
+        const boundedY = Math.max(minY, Math.min(maxY, snappedY));
         
         // Update desk position
         this.currentDraggedDesk.element.style.left = boundedX + 'px';
