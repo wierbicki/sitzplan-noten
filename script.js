@@ -293,11 +293,21 @@ class SeatingPlan {
     }
 
     addDesk(type) {
+        // Find a free position for the new desk
+        const deskWidth = type === 'single' ? 100 : 200;
+        const deskHeight = 80;
+        const freePosition = this.findFreePosition(deskWidth, deskHeight);
+        
+        if (!freePosition) {
+            alert('Kein Platz verfügbar! Bitte verschieben Sie bestehende Tische oder vergrößern Sie das Klassenzimmer.');
+            return;
+        }
+        
         const newDesk = {
             id: this.desks.length,
             type: type,
-            x: 100 + (this.desks.length * 50),
-            y: 100 + (this.desks.length * 30),
+            x: freePosition.x,
+            y: freePosition.y,
             capacity: type === 'single' ? 1 : 2,
             students: [],
             element: null
@@ -311,6 +321,25 @@ class SeatingPlan {
         newDesk.element = deskElement;
         
         this.saveCurrentClassState();
+    }
+
+    findFreePosition(width, height) {
+        const classroom = document.getElementById('classroomGrid');
+        const classroomRect = classroom.getBoundingClientRect();
+        const gridSize = 25;
+        
+        // Try positions in a grid pattern, starting from top-left
+        for (let y = 0; y <= classroomRect.height - height; y += gridSize) {
+            for (let x = 0; x <= classroomRect.width - width; x += gridSize) {
+                // Check if this position would cause a collision
+                if (!this.checkDeskCollision(x, y, width, height, -1)) {
+                    return { x, y };
+                }
+            }
+        }
+        
+        // If no free position found, return null
+        return null;
     }
 
     enterDeskRemovalMode() {
