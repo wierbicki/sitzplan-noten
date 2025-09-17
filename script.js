@@ -1299,6 +1299,12 @@ class SeatingPlan {
         if (confirm('Möchten Sie wirklich alle Zähler in dieser Klasse zurücksetzen?')) {
             this.studentCounters.clear();
             this.updateAllCounterDisplays();
+            
+            // Re-render all desk contents to show reset counters
+            this.desks.forEach(desk => {
+                this.updateDeskContent(desk, desk.element);
+            });
+            
             this.renderStudentPool();
             this.saveCurrentClassState();
         }
