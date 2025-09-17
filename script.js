@@ -362,6 +362,31 @@ class SeatingPlan {
             this.enterDeskRemovalMode();
         });
 
+        // Student pool drop handlers for drag and drop back to pool
+        const studentPool = document.getElementById('studentPool');
+        studentPool.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+            studentPool.classList.add('drag-over');
+        });
+
+        studentPool.addEventListener('dragleave', (e) => {
+            // Only remove if leaving the actual pool element (not child elements)
+            if (!studentPool.contains(e.relatedTarget)) {
+                studentPool.classList.remove('drag-over');
+            }
+        });
+
+        studentPool.addEventListener('drop', (e) => {
+            e.preventDefault();
+            studentPool.classList.remove('drag-over');
+            
+            if (this.draggedElement) {
+                const studentId = this.draggedElement.dataset.studentId;
+                this.moveStudentToPool(studentId);
+            }
+        });
+
         document.getElementById('deleteStudent').addEventListener('click', () => {
             this.deleteCurrentStudent();
         });
@@ -1115,12 +1140,8 @@ class SeatingPlan {
                 this.handleCounterRelease(student.id);
                 mouseStartPosition = null;
             });
-        } else {
-            // Double click to remove from seat (only for students in pool)
-            card.addEventListener('dblclick', () => {
-                this.removeStudentFromSeat(student.id);
-            });
         }
+        // Note: Pool students don't need double-click handlers since they're already in the pool
 
         return card;
     }
@@ -1406,8 +1427,8 @@ class SeatingPlan {
     }
 
     moveStudentToPool(studentId) {
-        // Only remove from seat, keep in students array
-        this.removeStudentFromSeat(studentId);
+        // Only remove from desk, keep in students array
+        this.removeStudentFromDesk(studentId);
         this.renderStudentPool();
         this.saveCurrentClassState();
     }
