@@ -59,14 +59,9 @@ class SeatingPlan {
     }
 
     createDefaultDesks() {
-        // Create some default single and double desks
+        // Create only one default double desk
         const defaultDesks = [
-            { type: 'single', x: 50, y: 50, capacity: 1, students: [] },
-            { type: 'double', x: 200, y: 50, capacity: 2, students: [] },
-            { type: 'single', x: 350, y: 50, capacity: 1, students: [] },
-            { type: 'double', x: 50, y: 200, capacity: 2, students: [] },
-            { type: 'single', x: 200, y: 200, capacity: 1, students: [] },
-            { type: 'double', x: 350, y: 200, capacity: 2, students: [] }
+            { type: 'double', x: 200, y: 150, capacity: 2, students: [] }
         ];
 
         defaultDesks.forEach((deskData) => {
@@ -2062,10 +2057,13 @@ class SeatingPlan {
             
             if (namePattern.test(fileName)) {
                 const [, lastName, firstName] = fileName.match(namePattern);
+                // Capitalize first letter of first and last name
+                const capitalizedFirstName = firstName.trim().charAt(0).toUpperCase() + firstName.trim().slice(1).toLowerCase();
+                const capitalizedLastName = lastName.trim().charAt(0).toUpperCase() + lastName.trim().slice(1).toLowerCase();
                 validFiles.push({
                     file: file,
-                    firstName: firstName.trim(),
-                    lastName: lastName.trim()
+                    firstName: capitalizedFirstName,
+                    lastName: capitalizedLastName
                 });
             } else {
                 invalidFiles.push(`${file.name} (falsches Format)`);
