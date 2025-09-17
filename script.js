@@ -2040,6 +2040,103 @@ class SeatingPlan {
         reader.readAsText(file);
     }
 
+    async importImages(files) {
+        // Check if a class is selected
+        if (!this.currentClassId) {
+            alert('Bitte wählen Sie zuerst eine Klasse aus.');
+            return;
+        }
+
+        const validFiles = [];
+        const invalidFiles = [];
+
+        // Validate filenames
+        for (let file of files) {
+            if (!file.type.startsWith('image/')) {
+                invalidFiles.push(`${file.name} (kein Bild)`);
+                continue;
+            }
+
+            const fileName = file.name.replace(/\.[^/.]+$/, ""); // Remove extension
+            const namePattern = /^(.+)-(.+)$/; // nachname-vorname pattern
+            
+            if (namePattern.test(fileName)) {
+                const [, lastName, firstName] = fileName.match(namePattern);
+                validFiles.push({
+                    file: file,
+                    firstName: firstName.trim(),
+                    lastName: lastName.trim()
+                });
+            } else {
+                invalidFiles.push(`${file.name} (falsches Format)`);
+            }
+        }
+
+        // Show validation results
+        if (invalidFiles.length > 0) {
+            let message = 'Folgende Dateien haben das falsche Format und werden übersprungen:\n\n';
+            message += invalidFiles.join('\n');
+            message += '\n\nErwartetes Format: "nachname-vorname.jpg"';
+            alert(message);
+        }
+
+        if (validFiles.length === 0) {
+            alert('Keine gültigen Bilder gefunden. Verwenden Sie das Format "nachname-vorname.jpg"');
+            return;
+        }
+
+        // Convert images and create students
+        let successCount = 0;
+        for (let validFile of validFiles) {
+            try {
+                const imageData = await this.fileToBase64(validFile.file);
+                
+                // Create new student
+                const studentId = Date.now() + Math.random();
+                const newStudent = {
+                    id: studentId,
+                    firstName: validFile.firstName,
+                    lastName: validFile.lastName,
+                    photo: imageData,
+                    grade: this.startingGrade
+                };
+
+                this.students.push(newStudent);
+                this.studentCounters.set(studentId, 0);
+                successCount++;
+            } catch (error) {
+                console.error('Error processing file:', validFile.file.name, error);
+                invalidFiles.push(`${validFile.file.name} (Fehler beim Verarbeiten)`);
+            }
+        }
+
+        // Update UI and save
+        this.updateUI();
+        this.saveCurrentClassState();
+
+        // Show success message
+        let message = `${successCount} Schüler erfolgreich importiert!`;
+        if (invalidFiles.length > 0) {
+            message += `\n\n${invalidFiles.length} Dateien konnten nicht verarbeitet werden.`;
+        }
+        alert(message);
+
+        // Close dropdown
+        document.getElementById('dropdownContent').classList.remove('show');
+
+        // Clear file input
+        document.getElementById('importImages').value = '';
+    }
+
+    fileToBase64(file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result);
+            reader.onerror = reject;
+            reader.readAsDataURL(file);
+        });
+    }
+
     showGradeTable() {
         if (!this.currentClassId || !this.showGrades) {
             return;
