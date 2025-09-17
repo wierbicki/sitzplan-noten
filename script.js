@@ -136,11 +136,11 @@ class SeatingPlan {
                 // For double desks, apply positioning based on deskPosition property
                 if (desk.type === 'double' && student.deskPosition) {
                     if (student.deskPosition === 'left') {
-                        studentCard.style.alignSelf = 'flex-start';
                         studentCard.style.marginRight = desk.students.length === 1 ? 'auto' : '5px';
+                        studentCard.style.marginLeft = '0';
                     } else if (student.deskPosition === 'right') {
-                        studentCard.style.alignSelf = 'flex-end';
                         studentCard.style.marginLeft = desk.students.length === 1 ? 'auto' : '5px';
+                        studentCard.style.marginRight = '0';
                     }
                 }
                 
@@ -220,13 +220,47 @@ class SeatingPlan {
         const boundedX = Math.max(minX, Math.min(maxX, snappedX));
         const boundedY = Math.max(minY, Math.min(maxY, snappedY));
         
-        // Update desk position
-        this.currentDraggedDesk.element.style.left = boundedX + 'px';
-        this.currentDraggedDesk.element.style.top = boundedY + 'px';
+        // Check for collisions with other desks
+        const wouldCollide = this.checkDeskCollision(boundedX, boundedY, deskWidth, deskHeight, this.currentDraggedDesk.id);
         
-        // Update desk data
-        this.currentDraggedDesk.x = boundedX;
-        this.currentDraggedDesk.y = boundedY;
+        if (!wouldCollide) {
+            // Update desk position only if no collision
+            this.currentDraggedDesk.element.style.left = boundedX + 'px';
+            this.currentDraggedDesk.element.style.top = boundedY + 'px';
+            
+            // Update desk data
+            this.currentDraggedDesk.x = boundedX;
+            this.currentDraggedDesk.y = boundedY;
+        }
+    }
+
+    checkDeskCollision(x, y, width, height, excludeDeskId) {
+        // Check collision with all other desks
+        for (const desk of this.desks) {
+            if (desk.id === excludeDeskId) continue; // Skip the desk being moved
+            
+            const otherDeskElement = desk.element;
+            if (!otherDeskElement) continue;
+            
+            const otherRect = otherDeskElement.getBoundingClientRect();
+            const classroomRect = document.getElementById('classroomGrid').getBoundingClientRect();
+            
+            // Convert to relative coordinates
+            const otherX = desk.x;
+            const otherY = desk.y;
+            const otherWidth = otherRect.width;
+            const otherHeight = otherRect.height;
+            
+            // Check if rectangles overlap (with small margin for better UX)
+            const margin = 5;
+            if (x < otherX + otherWidth + margin &&
+                x + width + margin > otherX &&
+                y < otherY + otherHeight + margin &&
+                y + height + margin > otherY) {
+                return true; // Collision detected
+            }
+        }
+        return false; // No collision
     }
 
     handleDeskMouseUp(event) {
