@@ -126,7 +126,7 @@ class SeatingPlan {
             // Empty desk - show desk number and type
             const label = document.createElement('div');
             label.className = 'desk-label';
-            label.textContent = `${desk.type === 'single' ? 'Einzel' : 'Doppel'} ${desk.id + 1}`;
+            label.textContent = `${desk.type === 'single' ? 'Einzeltisch' : 'Doppeltisch'}`;
             deskElement.appendChild(label);
         } else {
             // Desk with students
@@ -332,22 +332,6 @@ class SeatingPlan {
             this.addStudent();
         });
 
-        // Grid control events
-        document.getElementById('addRow').addEventListener('click', () => {
-            this.addRow();
-        });
-
-        document.getElementById('removeRow').addEventListener('click', () => {
-            this.removeRow();
-        });
-
-        document.getElementById('addColumn').addEventListener('click', () => {
-            this.addColumn();
-        });
-
-        document.getElementById('removeColumn').addEventListener('click', () => {
-            this.removeColumn();
-        });
 
         // Desk management events
         document.getElementById('addSingleDesk').addEventListener('click', () => {
