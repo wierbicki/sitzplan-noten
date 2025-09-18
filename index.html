@@ -120,6 +120,14 @@
                     <label for="className">Klassenname:</label>
                     <input type="text" id="className" placeholder="z.B. 5a, 10b, Mathe-LK" required>
                 </div>
+                <div class="form-group">
+                    <label for="periodLength">Standard-Bewertungsperiode:</label>
+                    <select id="periodLength" required>
+                        <option value="1">1 Tag (normal)</option>
+                        <option value="2">2 Tage (für große Klassen)</option>
+                        <option value="3">3 Tage (sehr große Klassen)</option>
+                    </select>
+                </div>
                 <div class="modal-actions">
                     <button type="button" class="btn-secondary" id="cancelClassModal">Abbrechen</button>
                     <button type="submit" class="btn-primary" id="submitClassButton">Anlegen</button>

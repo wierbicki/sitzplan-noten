@@ -680,7 +680,17 @@ class SeatingPlan {
                 if (classData.seatAssignments && !classData.deskAssignments) {
                     classData.deskAssignments = new Map();
                 }
+                // Migrate old classes to include defaultPeriodLength
+                if (!classData.defaultPeriodLength) {
+                    classData.defaultPeriodLength = 1;
+                    migrationOccurred = true;
+                }
             });
+            
+            // Save classes if migration occurred
+            if (typeof migrationOccurred !== 'undefined' && migrationOccurred) {
+                this.saveClasses();
+            }
             
             // Automatically select the first available class after loading
             if (this.classes.size > 0) {
@@ -707,6 +717,7 @@ class SeatingPlan {
             gridColumns: 6,
             showGrades: false,
             startingGrade: 4.0,
+            defaultPeriodLength: 1,
             gradeTable: new Map(),
             absenceTable: new Map(),
             hiddenGrades: new Map()
@@ -720,6 +731,8 @@ class SeatingPlan {
 
     addClass() {
         const className = document.getElementById('className').value.trim();
+        const periodLength = parseInt(document.getElementById('periodLength').value);
+        
         if (!className) return;
 
         const newClass = {
@@ -732,7 +745,8 @@ class SeatingPlan {
             gridRows: 5,
             gridColumns: 6,
             showGrades: false,
-            startingGrade: 4.0
+            startingGrade: 4.0,
+            defaultPeriodLength: periodLength || 1
         };
 
         this.classes.set(newClass.id, newClass);
@@ -757,6 +771,7 @@ class SeatingPlan {
             
             const classData = this.classes.get(this.currentClassId);
             document.getElementById('className').value = classData.name;
+            document.getElementById('periodLength').value = classData.defaultPeriodLength || 1;
             document.getElementById('classModalTitle').textContent = 'Klasse bearbeiten';
             document.getElementById('submitClassButton').textContent = 'Speichern';
         } else {
@@ -764,6 +779,7 @@ class SeatingPlan {
             this.editingClassId = null;
             
             document.getElementById('className').value = '';
+            document.getElementById('periodLength').value = '1';
             document.getElementById('classModalTitle').textContent = 'Neue Klasse anlegen';
             document.getElementById('submitClassButton').textContent = 'Anlegen';
         }
@@ -773,10 +789,13 @@ class SeatingPlan {
 
     updateClass() {
         const newClassName = document.getElementById('className').value.trim();
+        const periodLength = parseInt(document.getElementById('periodLength').value);
+        
         if (!newClassName || !this.editingClassId) return;
 
         const classData = this.classes.get(this.editingClassId);
         classData.name = newClassName;
+        classData.defaultPeriodLength = periodLength || 1;
         
         this.classes.set(this.editingClassId, classData);
         this.saveClasses();
