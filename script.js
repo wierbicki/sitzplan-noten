@@ -948,6 +948,9 @@ class SeatingPlan {
         document.getElementById('classSelect').value = classId;
         document.getElementById('editClass').style.display = this.currentClassId ? 'inline-block' : 'none';
         document.getElementById('deleteClass').style.display = this.classes.size > 1 ? 'inline-block' : 'none';
+        
+        // Update period info display
+        this.updatePeriodInfo();
     }
 
     saveCurrentClassState() {
@@ -1151,7 +1154,36 @@ class SeatingPlan {
         this.periods.set(periodId, newPeriod);
         this.activePeriodId = periodId;
         
+        // Update period info display
+        this.updatePeriodInfo();
+        
         return newPeriod;
+    }
+
+    updatePeriodInfo() {
+        const periodInfoElement = document.getElementById('periodInfo');
+        const periodTextElement = document.getElementById('periodText');
+        
+        if (!this.currentClassId || !this.activePeriodId) {
+            periodInfoElement.style.display = 'none';
+            return;
+        }
+        
+        const currentPeriod = this.periods.get(this.activePeriodId);
+        const currentClass = this.classes.get(this.currentClassId);
+        
+        if (!currentPeriod) {
+            periodInfoElement.style.display = 'none';
+            return;
+        }
+        
+        // Format period information
+        const periodInfo = `${currentPeriod.name} (${currentPeriod.columns.length}/${currentPeriod.maxColumns} Tage)`;
+        const defaultPeriodLength = currentClass.defaultPeriodLength || 1;
+        const periodConfig = defaultPeriodLength > 1 ? ` | Standard: ${defaultPeriodLength} Tage` : '';
+        
+        periodTextElement.textContent = periodInfo + periodConfig;
+        periodInfoElement.style.display = 'block';
     }
     
     addColumnToPeriod(columnName, periodId = null) {
@@ -1166,6 +1198,10 @@ class SeatingPlan {
         }
         
         period.columns.push(columnName);
+        
+        // Update period info display
+        this.updatePeriodInfo();
+        
         return true;
     }
     
