@@ -328,8 +328,8 @@ body {
 
 /* Desk styles for new desk system */
 .desk {
-    background: rgba(142, 142, 147, 0.1);
-    border: 2px dashed rgba(142, 142, 147, 0.3);
+    background: rgba(142, 142, 147, 0.05);
+    border: 2px dashed rgba(142, 142, 147, 0.15);
     border-radius: 12px;
     display: flex;
     flex-direction: row;
@@ -367,8 +367,8 @@ body {
 .desk-single {
     min-width: 100px;
     min-height: 80px;
-    background: rgba(52, 199, 89, 0.1);
-    border-color: rgba(52, 199, 89, 0.3);
+    background: rgba(52, 199, 89, 0.05);
+    border-color: rgba(52, 199, 89, 0.15);
 }
 
 .desk-double {
@@ -422,21 +422,21 @@ body {
 
 /* Desk color coding */
 .desk-empty {
-    background-color: #d1d1d6 !important; /* Gray for empty desks */
-    border-color: #a1a1a6 !important;
+    background-color: #f5f5f7 !important; /* Very light gray for empty desks */
+    border-color: #e5e5ea !important;
 }
 
 .desk-empty .desk-label {
-    color: #666 !important;
+    color: #8e8e93 !important;
 }
 
 .desk-occupied {
-    background-color: #c3f0c3 !important; /* Light green for occupied desks */
-    border-color: #4caf50 !important;
+    background-color: #f0f9f0 !important; /* Very light green for occupied desks */
+    border-color: #d0e8d0 !important;
 }
 
 .desk-occupied .desk-label {
-    color: #2e7d32 !important;
+    color: #6d8a6d !important;
 }
 
 .student-card {
