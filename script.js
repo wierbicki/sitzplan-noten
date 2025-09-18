@@ -19,6 +19,8 @@ class SeatingPlan {
         this.gradeTable = new Map(); // Store grade table data: studentId -> Map(dateColumn -> grade)
         this.absenceTable = new Map(); // Store absence data: studentId -> Map(dateColumn -> boolean)
         this.hiddenGrades = new Map(); // Store temporarily hidden grades due to absence: studentId -> Map(dateColumn -> grade)
+        this.periods = new Map(); // Store grading periods: periodId -> {name, columns, active}
+        this.activePeriodId = null; // ID of currently active period
         this.sortColumn = 'lastName'; // Current sort column
         this.sortDirection = 'asc'; // 'asc' or 'desc'
         this.isDragging = false; // Track if drag operation is active
@@ -673,6 +675,7 @@ class SeatingPlan {
             this.classes = new Map(classesData.map(cls => [cls.id, cls]));
             
             // Normalize all classes data types after loading from localStorage
+            let migrationOccurred = false;
             this.classes.forEach((classData, classId) => {
                 classData.studentCounters = new Map(classData.studentCounters || []);
                 classData.deskAssignments = new Map(classData.deskAssignments || []);
@@ -688,7 +691,7 @@ class SeatingPlan {
             });
             
             // Save classes if migration occurred
-            if (typeof migrationOccurred !== 'undefined' && migrationOccurred) {
+            if (migrationOccurred) {
                 this.saveClasses();
             }
             
@@ -720,7 +723,9 @@ class SeatingPlan {
             defaultPeriodLength: 1,
             gradeTable: new Map(),
             absenceTable: new Map(),
-            hiddenGrades: new Map()
+            hiddenGrades: new Map(),
+            periods: new Map(),
+            activePeriodId: null
         };
 
         this.classes.set(defaultClass.id, defaultClass);
@@ -746,7 +751,9 @@ class SeatingPlan {
             gridColumns: 6,
             showGrades: false,
             startingGrade: 4.0,
-            defaultPeriodLength: periodLength || 1
+            defaultPeriodLength: periodLength || 1,
+            periods: new Map(),
+            activePeriodId: null
         };
 
         this.classes.set(newClass.id, newClass);
@@ -872,6 +879,20 @@ class SeatingPlan {
                 this.hiddenGrades.set(studentId, studentHiddenMap);
             });
         }
+        
+        // Properly reconstruct periods Map
+        this.periods = new Map();
+        if (classData.periods && Array.isArray(classData.periods)) {
+            classData.periods.forEach(([periodId, periodData]) => {
+                this.periods.set(periodId, periodData);
+            });
+        }
+        this.activePeriodId = classData.activePeriodId || null;
+        
+        // Migration: Convert existing grade columns to 1-day periods if no periods exist
+        if (this.periods.size === 0 && this.gradeTable.size > 0) {
+            this.migrateExistingGradesToPeriods();
+        }
 
         // Initialize nextDeskId based on existing desks to avoid ID conflicts
         if (this.desks.length > 0) {
@@ -958,6 +979,10 @@ class SeatingPlan {
         classData.hiddenGrades = Array.from(this.hiddenGrades.entries()).map(([studentId, studentHiddenMap]) => {
             return [studentId, Array.from(studentHiddenMap.entries())];
         });
+        
+        // Properly serialize periods Map
+        classData.periods = Array.from(this.periods.entries());
+        classData.activePeriodId = this.activePeriodId;
 
         this.classes.set(this.currentClassId, classData);
         this.saveClasses();
@@ -1089,6 +1114,176 @@ class SeatingPlan {
             deskAssignments: Array.from(classData.deskAssignments.entries())
         }));
         localStorage.setItem('seatingPlan_classes', JSON.stringify(classesData));
+    }
+
+    // Periodenverwaltung Methods
+    createNewPeriod(firstColumnName) {
+        if (!this.currentClassId) return null;
+        
+        const classData = this.classes.get(this.currentClassId);
+        const periodLength = classData.defaultPeriodLength || 1;
+        
+        const periodId = 'period_' + Date.now();
+        const periodNumber = this.periods.size + 1;
+        
+        const newPeriod = {
+            id: periodId,
+            name: `Periode ${periodNumber}`,
+            columns: [firstColumnName],
+            maxColumns: periodLength,
+            active: true
+        };
+        
+        // Deactivate previous active period
+        this.periods.forEach(period => {
+            period.active = false;
+        });
+        
+        this.periods.set(periodId, newPeriod);
+        this.activePeriodId = periodId;
+        
+        return newPeriod;
+    }
+    
+    addColumnToPeriod(columnName, periodId = null) {
+        const targetPeriodId = periodId || this.activePeriodId;
+        if (!targetPeriodId || !this.periods.has(targetPeriodId)) {
+            return false;
+        }
+        
+        const period = this.periods.get(targetPeriodId);
+        if (period.columns.length >= period.maxColumns) {
+            return false; // Period is already full
+        }
+        
+        period.columns.push(columnName);
+        return true;
+    }
+    
+    isPeriodComplete(periodId = null) {
+        const targetPeriodId = periodId || this.activePeriodId;
+        if (!targetPeriodId || !this.periods.has(targetPeriodId)) {
+            return false;
+        }
+        
+        const period = this.periods.get(targetPeriodId);
+        return period.columns.length >= period.maxColumns;
+    }
+    
+    shouldCreateNewPeriod() {
+        if (!this.activePeriodId) {
+            return true; // No active period
+        }
+        
+        return this.isPeriodComplete();
+    }
+    
+    calculatePeriodGrade(studentId, periodId) {
+        if (!this.periods.has(periodId)) {
+            return null;
+        }
+        
+        const period = this.periods.get(periodId);
+        const studentGrades = this.gradeTable.get(studentId);
+        const studentAbsences = this.absenceTable.get(studentId);
+        
+        if (!studentGrades) {
+            return this.startingGrade;
+        }
+        
+        let totalCounter = 0;
+        let hasValidGrades = false;
+        
+        period.columns.forEach(column => {
+            // Skip if student was absent for this column
+            if (studentAbsences && studentAbsences.get(column)) {
+                return;
+            }
+            
+            if (studentGrades.has(column)) {
+                const grade = parseFloat(studentGrades.get(column));
+                if (!isNaN(grade)) {
+                    // Convert grade back to counter value
+                    // startingGrade - grade = 0.5 * counter
+                    // counter = (startingGrade - grade) / 0.5
+                    const counterValue = (this.startingGrade - grade) / 0.5;
+                    totalCounter += Math.max(0, counterValue);
+                    hasValidGrades = true;
+                }
+            }
+        });
+        
+        if (!hasValidGrades) {
+            return this.startingGrade;
+        }
+        
+        // Calculate final grade: startingGrade - (totalCounter * 0.5)
+        const finalGrade = Math.max(1.0, this.startingGrade - (totalCounter * 0.5));
+        return parseFloat(finalGrade.toFixed(1));
+    }
+    
+    migrateExistingGradesToPeriods() {
+        // Get all existing date columns from grade table
+        const dateColumns = new Set();
+        this.gradeTable.forEach(studentGrades => {
+            studentGrades.forEach((grade, dateColumn) => {
+                dateColumns.add(dateColumn);
+            });
+        });
+        
+        // Sort date columns - try date parsing first, fallback to string sort
+        const sortedDateColumns = Array.from(dateColumns).sort((a, b) => {
+            // Try to parse as German date format (dd.mm.yyyy or dd/mm/yyyy)
+            const parseGermanDate = (dateStr) => {
+                const parts = dateStr.split(/[.\/]/);
+                if (parts.length === 3) {
+                    const day = parseInt(parts[0]);
+                    const month = parseInt(parts[1]) - 1; // Month is 0-indexed in Date
+                    const year = parseInt(parts[2]);
+                    if (!isNaN(day) && !isNaN(month) && !isNaN(year)) {
+                        return new Date(year, month, day);
+                    }
+                }
+                return null;
+            };
+            
+            const dateA = parseGermanDate(a);
+            const dateB = parseGermanDate(b);
+            
+            if (dateA && dateB) {
+                return dateA - dateB; // Date comparison
+            }
+            
+            return a.localeCompare(b); // Fallback to string comparison
+        });
+        
+        // Create a 1-day period for each existing date column
+        sortedDateColumns.forEach((dateColumn, index) => {
+            const periodId = 'period_migration_' + Date.now() + '_' + index;
+            const periodNumber = index + 1;
+            
+            const period = {
+                id: periodId,
+                name: `Periode ${periodNumber}`,
+                columns: [dateColumn],
+                maxColumns: 1,
+                active: false // All migrated periods are inactive
+            };
+            
+            this.periods.set(periodId, period);
+        });
+        
+        // Set the last period as active if any exist
+        if (sortedDateColumns.length > 0) {
+            const lastPeriodId = Array.from(this.periods.keys()).pop();
+            this.periods.get(lastPeriodId).active = true;
+            this.activePeriodId = lastPeriodId;
+        }
+        
+        console.log(`Migration: ${sortedDateColumns.length} existing date columns converted to 1-day periods`);
+        
+        // Save the migrated periods
+        this.saveCurrentClassState();
     }
 
     updateUI() {
@@ -2329,6 +2524,35 @@ class SeatingPlan {
         
         if (!columnName) {
             return; // User cancelled
+        }
+
+        // Check for duplicate column names across all periods
+        const allExistingColumns = [];
+        this.periods.forEach(period => {
+            allExistingColumns.push(...period.columns);
+        });
+        
+        if (allExistingColumns.includes(columnName)) {
+            alert(`Eine Spalte mit dem Namen "${columnName}" existiert bereits. Bitte wählen Sie einen anderen Namen.`);
+            return;
+        }
+
+        // Periodenverwaltung: Entscheiden ob neue Periode oder zu bestehender hinzufügen
+        let currentPeriod = null;
+        
+        if (this.shouldCreateNewPeriod()) {
+            currentPeriod = this.createNewPeriod(columnName);
+            console.log(`Neue Periode erstellt: ${currentPeriod.name} (${currentPeriod.maxColumns} Tage)`);
+        } else {
+            const added = this.addColumnToPeriod(columnName);
+            if (added) {
+                currentPeriod = this.periods.get(this.activePeriodId);
+                console.log(`Spalte zu ${currentPeriod.name} hinzugefügt (${currentPeriod.columns.length}/${currentPeriod.maxColumns})`);
+            } else {
+                // Fallback: create new period if adding failed
+                currentPeriod = this.createNewPeriod(columnName);
+                console.log(`Neue Periode erstellt (Fallback): ${currentPeriod.name}`);
+            }
         }
 
         // Initialize grade and absence tables for all students if not exists
