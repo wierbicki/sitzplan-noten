@@ -2339,7 +2339,13 @@ class SeatingPlan {
             const presentGrades = [];
             studentGrades.forEach((grade, dateColumn) => {
                 const gradeValue = parseFloat(grade);
-                const isAbsent = studentAttendance.get(dateColumn) === true; // Default to present (false) if not set
+                let isAbsent = studentAttendance.get(dateColumn) === true; // Default to present (false) if not set
+                
+                // Auto-mark as absent if student is not assigned to any desk
+                const isAssignedToDesk = this.isStudentAssignedToDesk(student.id);
+                if (!isAssignedToDesk) {
+                    isAbsent = true;
+                }
                 
                 // Only include grade if student was present and grade is valid
                 if (!isAbsent && !isNaN(gradeValue)) {
@@ -2410,7 +2416,13 @@ class SeatingPlan {
                 
                 // Get attendance status
                 const studentAttendance = this.attendanceTable.get(student.id) || new Map();
-                const isAbsent = studentAttendance.get(dateColumn) === true; // Default to present (false) if not set
+                let isAbsent = studentAttendance.get(dateColumn) === true; // Default to present (false) if not set
+                
+                // Auto-mark as absent if student is not assigned to any desk
+                const isAssignedToDesk = this.isStudentAssignedToDesk(student.id);
+                if (!isAssignedToDesk) {
+                    isAbsent = true;
+                }
                 
                 if (!isNaN(gradeValue)) {
                     if (gradeValue >= 1.0 && gradeValue <= 1.5) gradeClass = 'grade-1';
@@ -2430,7 +2442,8 @@ class SeatingPlan {
                                        data-student-id="${student.id}" 
                                        data-column="${dateColumn}"
                                        onchange="window.seatingPlan.updateAttendance(this)"
-                                       title="Abwesend">
+                                       title="Abwesend"
+                                       ${!this.isStudentAssignedToDesk(student.id) ? 'disabled' : ''}>
                                 <span class="attendance-text">Ab</span>
                             </label>
                             <input type="text" class="grade-input ${gradeClass}" 
@@ -2533,6 +2546,13 @@ class SeatingPlan {
         // Refresh the table to update averages
         this.saveCurrentClassState();
         this.showExtendedGradeTable();
+    }
+
+    isStudentAssignedToDesk(studentId) {
+        // Check if student is assigned to any desk
+        return this.desks.some(desk => 
+            desk.students.some(student => student.id == studentId)
+        );
     }
 
     updateGrade(input) {
