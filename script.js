@@ -1222,6 +1222,78 @@ class SeatingPlan {
         return parseFloat(finalGrade.toFixed(1));
     }
     
+    generatePeriodGroups(sortedDateColumns) {
+        const groups = [];
+        
+        // If no periods exist, create groups for individual columns
+        if (this.periods.size === 0) {
+            sortedDateColumns.forEach(dateColumn => {
+                groups.push({
+                    name: 'Einzeltag',
+                    columns: [dateColumn],
+                    periodId: null
+                });
+            });
+            return groups;
+        }
+        
+        
+        // Group columns by their periods
+        const sortedPeriods = Array.from(this.periods.entries()).map(([periodId, period]) => ({
+            id: periodId,
+            ...period
+        })).sort((a, b) => {
+            // Sort by first column date if possible
+            const firstDateA = a.columns[0];
+            const firstDateB = b.columns[0];
+            
+            const parseGermanDate = (dateStr) => {
+                const parts = dateStr.split(/[.\/]/);
+                if (parts.length >= 2) {
+                    const day = parseInt(parts[0]);
+                    const month = parseInt(parts[1]) - 1;
+                    const year = parts.length >= 3 ? parseInt(parts[2]) : new Date().getFullYear();
+                    if (!isNaN(day) && !isNaN(month)) {
+                        return new Date(year, month, day);
+                    }
+                }
+                return new Date(dateStr); // Fallback
+            };
+            
+            return parseGermanDate(firstDateA) - parseGermanDate(firstDateB);
+        });
+        
+        sortedPeriods.forEach(period => {
+            const filteredColumns = period.columns.filter(col => sortedDateColumns.includes(col));
+            if (filteredColumns.length > 0) {
+                groups.push({
+                    name: period.name,
+                    columns: filteredColumns,
+                    periodId: period.id
+                });
+            }
+        });
+        
+        // Add any orphaned columns (not in any period)
+        const periodsColumns = new Set();
+        sortedPeriods.forEach(period => {
+            period.columns.forEach(col => periodsColumns.add(col));
+        });
+        
+        const orphanedColumns = sortedDateColumns.filter(col => !periodsColumns.has(col));
+        if (orphanedColumns.length > 0) {
+            orphanedColumns.forEach(col => {
+                groups.push({
+                    name: 'Einzeltag',
+                    columns: [col],
+                    periodId: null
+                });
+            });
+        }
+        
+        return groups;
+    }
+    
     migrateExistingGradesToPeriods() {
         // Get all existing date columns from grade table
         const dateColumns = new Set();
@@ -2644,32 +2716,63 @@ class SeatingPlan {
         // Sort by current sort column and direction
         this.sortStudents(studentsWithGrades, sortedDateColumns);
 
-        // Create table HTML
+        // Generate period-grouped headers
+        const periodGroups = this.generatePeriodGroups(sortedDateColumns);
+        
+        // Create table HTML with period-grouped headers
         let tableHTML = `
             <table class="extended-grade-table">
                 <thead>
+                    <!-- First row: Period headers -->
                     <tr>
-                        <th onclick="window.seatingPlan.sortTable('lastName')" style="cursor: pointer;">
+                        <th rowspan="2" onclick="window.seatingPlan.sortTable('lastName')" style="cursor: pointer;">
                             Nachname ${this.getSortIndicator('lastName')}
                         </th>
-                        <th onclick="window.seatingPlan.sortTable('firstName')" style="cursor: pointer;">
+                        <th rowspan="2" onclick="window.seatingPlan.sortTable('firstName')" style="cursor: pointer;">
                             Vorname ${this.getSortIndicator('firstName')}
                         </th>
-                        <th onclick="window.seatingPlan.sortTable('average')" style="cursor: pointer;">
+                        <th rowspan="2" onclick="window.seatingPlan.sortTable('average')" style="cursor: pointer;">
                             Durchschnitt ${this.getSortIndicator('average')}
                         </th>
         `;
 
-        // Add date column headers with edit/delete buttons
-        sortedDateColumns.forEach(dateColumn => {
+        // Add period headers
+        periodGroups.forEach(group => {
+            const colSpan = group.columns.length + (group.columns.length > 1 ? 1 : 0); // +1 for period grade if multi-day
             tableHTML += `
-                <th onclick="window.seatingPlan.sortTable('${dateColumn}')" style="cursor: pointer;">
-                    <div class="column-header">
-                        <span class="column-name" data-column="${dateColumn}" onclick="event.stopPropagation(); window.seatingPlan.editColumnName('${dateColumn}')">${dateColumn} ${this.getSortIndicator(dateColumn)}</span>
-                        <button class="btn-small btn-danger" onclick="event.stopPropagation(); window.seatingPlan.deleteColumn('${dateColumn}')" title="Spalte löschen">×</button>
-                    </div>
+                <th colspan="${colSpan}" class="period-header">
+                    ${group.name} ${group.columns.length > 1 ? `(${group.columns.length} Tage)` : ''}
                 </th>
             `;
+        });
+
+        tableHTML += `
+                    </tr>
+                    <!-- Second row: Date columns -->
+                    <tr>
+        `;
+
+        // Add date column headers with edit/delete buttons
+        periodGroups.forEach(group => {
+            group.columns.forEach(dateColumn => {
+                tableHTML += `
+                    <th onclick="window.seatingPlan.sortTable('${dateColumn}')" style="cursor: pointer;">
+                        <div class="column-header">
+                            <span class="column-name" data-column="${dateColumn}" onclick="event.stopPropagation(); window.seatingPlan.editColumnName('${dateColumn}')">${dateColumn} ${this.getSortIndicator(dateColumn)}</span>
+                            <button class="btn-small btn-danger" onclick="event.stopPropagation(); window.seatingPlan.deleteColumn('${dateColumn}')" title="Spalte löschen">×</button>
+                        </div>
+                    </th>
+                `;
+            });
+            
+            // Add period grade column for multi-day periods
+            if (group.columns.length > 1) {
+                tableHTML += `
+                    <th class="period-grade-header">
+                        Note
+                    </th>
+                `;
+            }
         });
 
         tableHTML += `
@@ -2687,42 +2790,66 @@ class SeatingPlan {
                     <td><strong>${student.average}</strong></td>
             `;
 
-            // Add grade cells for each date column
-            sortedDateColumns.forEach(dateColumn => {
-                const grade = student.grades.get(dateColumn) || '';
-                const isAbsent = student.absences.get(dateColumn) || false;
-                const gradeValue = parseFloat(grade);
-                let gradeClass = '';
-                
-                if (!isNaN(gradeValue)) {
-                    if (gradeValue >= 1.0 && gradeValue <= 1.5) gradeClass = 'grade-1';
-                    else if (gradeValue > 1.5 && gradeValue <= 2.5) gradeClass = 'grade-2';
-                    else if (gradeValue > 2.5 && gradeValue <= 3.5) gradeClass = 'grade-3';
-                    else if (gradeValue > 3.5 && gradeValue <= 4.5) gradeClass = 'grade-4';
-                    else if (gradeValue > 4.5 && gradeValue <= 5.5) gradeClass = 'grade-5';
-                    else gradeClass = 'grade-6';
-                }
+            // Add grade cells grouped by periods
+            periodGroups.forEach(group => {
+                // Add individual date columns for this period
+                group.columns.forEach(dateColumn => {
+                    const grade = student.grades.get(dateColumn) || '';
+                    const isAbsent = student.absences.get(dateColumn) || false;
+                    const gradeValue = parseFloat(grade);
+                    let gradeClass = '';
+                    
+                    if (!isNaN(gradeValue)) {
+                        if (gradeValue >= 1.0 && gradeValue <= 1.5) gradeClass = 'grade-1';
+                        else if (gradeValue > 1.5 && gradeValue <= 2.5) gradeClass = 'grade-2';
+                        else if (gradeValue > 2.5 && gradeValue <= 3.5) gradeClass = 'grade-3';
+                        else if (gradeValue > 3.5 && gradeValue <= 4.5) gradeClass = 'grade-4';
+                        else if (gradeValue > 4.5 && gradeValue <= 5.5) gradeClass = 'grade-5';
+                        else gradeClass = 'grade-6';
+                    }
 
-                tableHTML += `
-                    <td>
-                        <div style="display: flex; align-items: center; justify-content: center; gap: 4px;">
-                            <input type="checkbox" 
-                                   ${isAbsent ? 'checked' : ''} 
-                                   data-student-id="${student.id}" 
-                                   data-column="${dateColumn}"
-                                   onchange="window.seatingPlan.toggleAbsence(this)"
-                                   title="Abw">
-                            <input type="text" class="grade-input ${gradeClass}${isAbsent ? ' absent' : ''}" 
-                                   value="${isAbsent ? '' : grade}" 
-                                   data-student-id="${student.id}" 
-                                   data-column="${dateColumn}"
-                                   ${isAbsent ? 'disabled' : ''}
-                                   onchange="window.seatingPlan.updateGrade(this)"
-                                   onblur="window.seatingPlan.updateGrade(this)"
-                                   placeholder="${isAbsent ? 'Abw' : ''}">
-                        </div>
-                    </td>
-                `;
+                    tableHTML += `
+                        <td>
+                            <div style="display: flex; align-items: center; justify-content: center; gap: 4px;">
+                                <input type="checkbox" 
+                                       ${isAbsent ? 'checked' : ''} 
+                                       data-student-id="${student.id}" 
+                                       data-column="${dateColumn}"
+                                       onchange="window.seatingPlan.toggleAbsence(this)"
+                                       title="Abw">
+                                <input type="text" class="grade-input ${gradeClass}${isAbsent ? ' absent' : ''}" 
+                                       value="${isAbsent ? '' : grade}" 
+                                       data-student-id="${student.id}" 
+                                       data-column="${dateColumn}"
+                                       ${isAbsent ? 'disabled' : ''}
+                                       onchange="window.seatingPlan.updateGrade(this)"
+                                       onblur="window.seatingPlan.updateGrade(this)"
+                                       placeholder="${isAbsent ? 'Abw' : ''}">
+                            </div>
+                        </td>
+                    `;
+                });
+                
+                // Add period grade column for multi-day periods
+                if (group.columns.length > 1 && group.periodId) {
+                    const periodGrade = this.calculatePeriodGrade(student.id, group.periodId);
+                    let periodGradeClass = '';
+                    
+                    if (periodGrade !== null && !isNaN(periodGrade)) {
+                        if (periodGrade >= 1.0 && periodGrade <= 1.5) periodGradeClass = 'grade-1';
+                        else if (periodGrade > 1.5 && periodGrade <= 2.5) periodGradeClass = 'grade-2';
+                        else if (periodGrade > 2.5 && periodGrade <= 3.5) periodGradeClass = 'grade-3';
+                        else if (periodGrade > 3.5 && periodGrade <= 4.5) periodGradeClass = 'grade-4';
+                        else if (periodGrade > 4.5 && periodGrade <= 5.5) periodGradeClass = 'grade-5';
+                        else periodGradeClass = 'grade-6';
+                    }
+                    
+                    tableHTML += `
+                        <td class="period-grade-cell">
+                            <strong class="${periodGradeClass}">${periodGrade !== null ? periodGrade.toFixed(1) : '-'}</strong>
+                        </td>
+                    `;
+                }
             });
 
             tableHTML += `</tr>`;
