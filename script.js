@@ -2339,10 +2339,10 @@ class SeatingPlan {
             const presentGrades = [];
             studentGrades.forEach((grade, dateColumn) => {
                 const gradeValue = parseFloat(grade);
-                const isPresent = studentAttendance.get(dateColumn) !== false; // Default to present if not set
+                const isAbsent = studentAttendance.get(dateColumn) === true; // Default to present (false) if not set
                 
                 // Only include grade if student was present and grade is valid
-                if (isPresent && !isNaN(gradeValue)) {
+                if (!isAbsent && !isNaN(gradeValue)) {
                     presentGrades.push(gradeValue);
                 }
             });
@@ -2410,7 +2410,7 @@ class SeatingPlan {
                 
                 // Get attendance status
                 const studentAttendance = this.attendanceTable.get(student.id) || new Map();
-                const isPresent = studentAttendance.get(dateColumn) !== false; // Default to present if not set
+                const isAbsent = studentAttendance.get(dateColumn) === true; // Default to present (false) if not set
                 
                 if (!isNaN(gradeValue)) {
                     if (gradeValue >= 1.0 && gradeValue <= 1.5) gradeClass = 'grade-1';
@@ -2426,12 +2426,12 @@ class SeatingPlan {
                         <div class="grade-attendance-container">
                             <label class="attendance-label">
                                 <input type="checkbox" class="attendance-checkbox" 
-                                       ${isPresent ? 'checked' : ''} 
+                                       ${isAbsent ? 'checked' : ''} 
                                        data-student-id="${student.id}" 
                                        data-column="${dateColumn}"
                                        onchange="window.seatingPlan.updateAttendance(this)"
-                                       title="Anwesend">
-                                <span class="attendance-text">A</span>
+                                       title="Abwesend">
+                                <span class="attendance-text">Ab</span>
                             </label>
                             <input type="text" class="grade-input ${gradeClass}" 
                                    value="${grade}" 
@@ -2439,7 +2439,7 @@ class SeatingPlan {
                                    data-column="${dateColumn}"
                                    onchange="window.seatingPlan.updateGrade(this)"
                                    onblur="window.seatingPlan.updateGrade(this)"
-                                   ${!isPresent ? 'disabled style="background-color: #f0f0f0; color: #999;"' : ''}>
+                                   ${isAbsent ? 'disabled style="background-color: #f0f0f0; color: #999;"' : ''}>
                         </div>
                     </td>
                 `;
@@ -2508,20 +2508,20 @@ class SeatingPlan {
     updateAttendance(checkbox) {
         const studentId = parseFloat(checkbox.dataset.studentId);
         const column = checkbox.dataset.column;
-        const isPresent = checkbox.checked;
+        const isAbsent = checkbox.checked;
 
-        // Update attendance table
+        // Update attendance table (store true for absent, false/undefined for present)
         if (!this.attendanceTable.has(studentId)) {
             this.attendanceTable.set(studentId, new Map());
         }
         
-        this.attendanceTable.get(studentId).set(column, isPresent);
+        this.attendanceTable.get(studentId).set(column, isAbsent);
 
         // Find the corresponding grade input and enable/disable it
         const gradeInput = checkbox.closest('td').querySelector('.grade-input');
         if (gradeInput) {
-            gradeInput.disabled = !isPresent;
-            if (!isPresent) {
+            gradeInput.disabled = isAbsent;
+            if (isAbsent) {
                 gradeInput.style.backgroundColor = '#f0f0f0';
                 gradeInput.style.color = '#999';
             } else {
