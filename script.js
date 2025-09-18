@@ -3315,13 +3315,13 @@ class SeatingPlan {
         }
 
         const { jsPDF } = window.jspdf;
-        const doc = new jsPDF();
+        const doc = new jsPDF('landscape'); // Use landscape for more columns
 
         // Get current class name
         const currentClass = this.classes.get(this.currentClassId);
         const className = currentClass ? currentClass.name : 'Unbekannte Klasse';
 
-        // Get all date columns from grade table
+        // Get all date columns and generate period groups
         const dateColumns = new Set();
         this.gradeTable.forEach(studentGrades => {
             studentGrades.forEach((grade, date) => {
@@ -3329,6 +3329,7 @@ class SeatingPlan {
             });
         });
         const sortedDateColumns = Array.from(dateColumns).sort();
+        const periodGroups = this.generatePeriodGroups(sortedDateColumns);
 
         // Title
         doc.setFontSize(16);
@@ -3338,77 +3339,98 @@ class SeatingPlan {
         doc.setFontSize(10);
         doc.text(`Erstellt am: ${new Date().toLocaleDateString('de-DE')}`, 20, 30);
 
+        // Prepare data for students
+        const studentsWithGrades = [];
+        this.students.forEach(student => {
+            const studentGrades = this.gradeTable.get(student.id) || new Map();
+            const studentAbsences = this.absenceTable.get(student.id) || new Map();
+            const average = this.calculateStudentAverage(student.id);
+
+            studentsWithGrades.push({
+                id: student.id,
+                lastName: student.lastName,
+                firstName: student.firstName,
+                grades: studentGrades,
+                absences: studentAbsences,
+                average: average
+            });
+        });
+
+        // Sort by last name
+        studentsWithGrades.sort((a, b) => a.lastName.localeCompare(b.lastName, 'de'));
+
+        // Calculate column headers
+        const headers = ['Nachname', 'Vorname', 'Durchschnitt'];
+        periodGroups.forEach(group => {
+            group.columns.forEach(dateColumn => {
+                headers.push(dateColumn);
+            });
+            // Add period grade column for multi-day periods
+            if (group.columns.length > 1 && group.periodId) {
+                headers.push(`${group.name} (Note)`);
+            }
+        });
+
         // Table headers
         doc.setFontSize(8);
         let xPosition = 20;
-        doc.text('Nachname', xPosition, 50);
-        xPosition += 30;
-        doc.text('Vorname', xPosition, 50);
-        xPosition += 30;
+        let maxWidth = 270; // Available width in landscape
+        let columnWidth = Math.min(25, maxWidth / headers.length);
         
-        // Add date column headers
-        sortedDateColumns.forEach(date => {
-            doc.text(date, xPosition, 50);
-            xPosition += 25;
+        headers.forEach(header => {
+            doc.text(header, xPosition, 50);
+            xPosition += columnWidth;
         });
-        
-        // Add average column
-        doc.text('Durchschnitt', xPosition, 50);
 
         // Line under headers
-        doc.line(20, 55, xPosition + 25, 55);
+        doc.line(20, 55, xPosition, 55);
 
         // Table content
-        doc.setFontSize(8);
         let yPosition = 65;
-
-        // Sort students by last name
-        const sortedStudents = [...this.students].sort((a, b) => 
-            a.lastName.localeCompare(b.lastName)
-        );
-
-        sortedStudents.forEach((student, index) => {
+        studentsWithGrades.forEach(student => {
             // Check if we need a new page
-            if (yPosition > 270) {
-                doc.addPage();
+            if (yPosition > 180) { // Adjusted for landscape
+                doc.addPage('landscape');
                 yPosition = 20;
                 
                 // Repeat headers on new page
                 doc.setFontSize(8);
                 let headerX = 20;
-                doc.text('Nachname', headerX, yPosition);
-                headerX += 30;
-                doc.text('Vorname', headerX, yPosition);
-                headerX += 30;
-                
-                sortedDateColumns.forEach(date => {
-                    doc.text(date, headerX, yPosition);
-                    headerX += 25;
+                headers.forEach(header => {
+                    doc.text(header, headerX, yPosition);
+                    headerX += columnWidth;
                 });
-                doc.text('Durchschnitt', headerX, yPosition);
-                doc.line(20, yPosition + 5, headerX + 25, yPosition + 5);
+                doc.line(20, yPosition + 5, headerX, yPosition + 5);
                 yPosition += 15;
             }
 
-            // Student data
             let dataX = 20;
+            
+            // Student name and average
             doc.text(student.lastName, dataX, yPosition);
-            dataX += 30;
+            dataX += columnWidth;
             doc.text(student.firstName, dataX, yPosition);
-            dataX += 30;
+            dataX += columnWidth;
+            doc.text(student.average, dataX, yPosition);
+            dataX += columnWidth;
 
-            // Grades for each date column
-            const studentGrades = this.gradeTable.get(student.id) || new Map();
-            sortedDateColumns.forEach(date => {
-                const grade = studentGrades.get(date) || '-';
-                doc.text(grade.toString(), dataX, yPosition);
-                dataX += 25;
+            // Grades for each period group
+            periodGroups.forEach(group => {
+                group.columns.forEach(dateColumn => {
+                    const isAbsent = student.absences.get(dateColumn) || false;
+                    const grade = isAbsent ? 'Abw' : (student.grades.get(dateColumn) || '-');
+                    doc.text(grade.toString(), dataX, yPosition);
+                    dataX += columnWidth;
+                });
+                
+                // Add period grade for multi-day periods
+                if (group.columns.length > 1 && group.periodId) {
+                    const periodGrade = this.calculatePeriodGrade(student.id, group.periodId);
+                    const periodGradeText = periodGrade !== null ? periodGrade.toFixed(1) : '-';
+                    doc.text(periodGradeText, dataX, yPosition);
+                    dataX += columnWidth;
+                }
             });
-
-            // Calculate and display average
-            const grades = Array.from(studentGrades.values()).map(g => parseFloat(g)).filter(g => !isNaN(g));
-            const average = grades.length > 0 ? (grades.reduce((sum, g) => sum + g, 0) / grades.length).toFixed(1) : '-';
-            doc.text(average.toString(), dataX, yPosition);
             
             yPosition += 10;
         });
@@ -3435,7 +3457,7 @@ class SeatingPlan {
         const currentClass = this.classes.get(this.currentClassId);
         const className = currentClass ? currentClass.name : 'Unbekannte Klasse';
 
-        // Get all date columns from grade table
+        // Get all date columns and generate period groups
         const dateColumns = new Set();
         this.gradeTable.forEach(studentGrades => {
             studentGrades.forEach((grade, date) => {
@@ -3443,37 +3465,96 @@ class SeatingPlan {
             });
         });
         const sortedDateColumns = Array.from(dateColumns).sort();
+        const periodGroups = this.generatePeriodGroups(sortedDateColumns);
+
+        // Prepare data for students
+        const studentsWithGrades = [];
+        this.students.forEach(student => {
+            const studentGrades = this.gradeTable.get(student.id) || new Map();
+            const studentAbsences = this.absenceTable.get(student.id) || new Map();
+            const average = this.calculateStudentAverage(student.id);
+
+            studentsWithGrades.push({
+                id: student.id,
+                lastName: student.lastName,
+                firstName: student.firstName,
+                grades: studentGrades,
+                absences: studentAbsences,
+                average: average
+            });
+        });
+
+        // Sort by last name
+        studentsWithGrades.sort((a, b) => a.lastName.localeCompare(b.lastName, 'de'));
 
         // Prepare data for Excel export
         const excelData = [];
         
-        // Add header row
-        const headerRow = ['Nachname', 'Vorname', ...sortedDateColumns, 'Durchschnitt'];
-        excelData.push(headerRow);
+        // Create header rows - we need two rows for period grouping
+        const periodHeaderRow = ['', '', '']; // Empty cells for name and average columns
+        const dateHeaderRow = ['Nachname', 'Vorname', 'Durchschnitt'];
         
-        // Sort students by last name
-        const sortedStudents = [...this.students].sort((a, b) => 
-            a.lastName.localeCompare(b.lastName)
-        );
+        periodGroups.forEach(group => {
+            if (group.columns.length > 1) {
+                // Multi-day period - add period header spanning multiple columns
+                const spanCount = group.columns.length + (group.periodId ? 1 : 0); // +1 for period grade
+                periodHeaderRow.push(`${group.name} (${group.columns.length} Tage)`);
+                for (let i = 1; i < spanCount; i++) {
+                    periodHeaderRow.push(''); // Empty cells for spanning
+                }
+            } else {
+                // Single day - just add empty cell
+                periodHeaderRow.push('');
+            }
+            
+            // Add individual date headers
+            group.columns.forEach(dateColumn => {
+                dateHeaderRow.push(dateColumn);
+            });
+            
+            // Add period grade column for multi-day periods
+            if (group.columns.length > 1 && group.periodId) {
+                dateHeaderRow.push(`${group.name} (Note)`);
+            }
+        });
+        
+        // Only add period header row if we have multi-day periods
+        const hasMultiDayPeriods = periodGroups.some(group => group.columns.length > 1);
+        if (hasMultiDayPeriods) {
+            excelData.push(periodHeaderRow);
+        }
+        excelData.push(dateHeaderRow);
         
         // Add student data
-        sortedStudents.forEach(student => {
-            const studentGrades = this.gradeTable.get(student.id) || new Map();
+        studentsWithGrades.forEach(student => {
             const row = [student.lastName, student.firstName];
             
-            // Add grades for each date column
-            sortedDateColumns.forEach(date => {
-                const grade = studentGrades.get(date) || '';
-                // Convert grade from dot to comma decimal format for German locale
-                const gradeWithComma = grade ? grade.toString().replace('.', ',') : '';
-                row.push(gradeWithComma);
-            });
-
-            // Calculate and add average
-            const grades = Array.from(studentGrades.values()).map(g => parseFloat(g)).filter(g => !isNaN(g));
-            const average = grades.length > 0 ? (grades.reduce((sum, g) => sum + g, 0) / grades.length).toFixed(1) : '';
-            const averageWithComma = average ? average.replace('.', ',') : '';
+            // Convert average with comma for German locale
+            const averageWithComma = student.average ? student.average.replace('.', ',') : '';
             row.push(averageWithComma);
+
+            // Add grades for each period group
+            periodGroups.forEach(group => {
+                group.columns.forEach(dateColumn => {
+                    const isAbsent = student.absences.get(dateColumn) || false;
+                    let grade = '';
+                    if (isAbsent) {
+                        grade = 'Abw';
+                    } else {
+                        grade = student.grades.get(dateColumn) || '';
+                        // Convert grade from dot to comma for German locale
+                        grade = grade ? grade.toString().replace('.', ',') : '';
+                    }
+                    row.push(grade);
+                });
+                
+                // Add period grade for multi-day periods
+                if (group.columns.length > 1 && group.periodId) {
+                    const periodGrade = this.calculatePeriodGrade(student.id, group.periodId);
+                    const periodGradeText = periodGrade !== null ? periodGrade.toFixed(1).replace('.', ',') : '';
+                    row.push(periodGradeText);
+                }
+            });
             
             excelData.push(row);
         });
@@ -3482,31 +3563,34 @@ class SeatingPlan {
         const wb = XLSX.utils.book_new();
         const ws = XLSX.utils.aoa_to_sheet(excelData);
 
-        // Set column widths dynamically based on number of columns
+        // Set column widths dynamically
+        const totalColumns = dateHeaderRow.length;
         const columnWidths = [
             { width: 20 }, // Nachname
             { width: 20 }, // Vorname
+            { width: 12 }, // Durchschnitt
         ];
         
-        // Add width for each date column
-        sortedDateColumns.forEach(() => {
-            columnWidths.push({ width: 10 });
-        });
-        
-        // Add width for average column
-        columnWidths.push({ width: 10 });
+        // Add widths for remaining columns
+        for (let i = 3; i < totalColumns; i++) {
+            columnWidths.push({ width: 12 });
+        }
         
         ws['!cols'] = columnWidths;
 
-        // Style the header row
+        // Style the header rows
         const headerRange = XLSX.utils.decode_range(ws['!ref']);
-        for (let col = headerRange.s.c; col <= headerRange.e.c; col++) {
-            const cellAddress = XLSX.utils.encode_cell({ r: 0, c: col });
-            if (ws[cellAddress]) {
-                ws[cellAddress].s = {
-                    font: { bold: true },
-                    fill: { fgColor: { rgb: "CCCCCC" } }
-                };
+        const headerRowCount = hasMultiDayPeriods ? 2 : 1;
+        
+        for (let row = 0; row < headerRowCount; row++) {
+            for (let col = headerRange.s.c; col <= headerRange.e.c; col++) {
+                const cellAddress = XLSX.utils.encode_cell({ r: row, c: col });
+                if (ws[cellAddress]) {
+                    ws[cellAddress].s = {
+                        font: { bold: true },
+                        fill: { fgColor: { rgb: "CCCCCC" } }
+                    };
+                }
             }
         }
 
