@@ -2973,9 +2973,11 @@ class SeatingPlan {
                         else periodGradeClass = 'grade-6';
                     }
                     
+                    const periodGradeDisplay = periodGrade !== null ? periodGrade.toFixed(1).replace('.', ',') : '-';
+                    
                     tableHTML += `
-                        <td class="period-grade-cell">
-                            <strong class="${periodGradeClass}">${periodGrade !== null ? periodGrade.toFixed(1) : '-'}</strong>
+                        <td class="period-grade-cell ${periodGradeClass}" data-student-id="${student.id}" data-period-id="${group.periodId}">
+                            <strong>${periodGradeDisplay}</strong>
                         </td>
                     `;
                 }
@@ -3239,7 +3241,21 @@ class SeatingPlan {
         // Convert studentId to number to match the student.id type used elsewhere
         const studentId = parseFloat(input.dataset.studentId);
         const column = input.dataset.column;
-        const grade = input.value.trim();
+        let grade = input.value.trim();
+
+        // German number format conversion: convert "." to "," and append ".0" for whole numbers
+        if (grade) {
+            // Replace "." with ","
+            grade = grade.replace('.', ',');
+            
+            // Check if it's a whole number and append ",0"
+            if (/^\d+$/.test(grade)) {
+                grade += ',0';
+            }
+            
+            // Update the input field to show the formatted value
+            input.value = grade;
+        }
 
         // Check if student is marked absent for this date
         const studentAbsences = this.absenceTable.get(studentId);
@@ -3248,9 +3264,12 @@ class SeatingPlan {
             return;
         }
 
+        // Convert comma to dot for numeric validation (parseFloat expects dots)
+        const gradeForValidation = grade.replace(',', '.');
+
         // Validate grade
-        if (grade && (isNaN(parseFloat(grade)) || parseFloat(grade) < 1.0 || parseFloat(grade) > 6.0)) {
-            alert('Bitte geben Sie eine gültige Note zwischen 1.0 und 6.0 ein.');
+        if (grade && (isNaN(parseFloat(gradeForValidation)) || parseFloat(gradeForValidation) < 1.0 || parseFloat(gradeForValidation) > 6.0)) {
+            alert('Bitte geben Sie eine gültige Note zwischen 1,0 und 6,0 ein.');
             
             // Get current saved grade for this student and column to restore it
             const studentGrades = this.gradeTable.get(studentId);
@@ -3274,8 +3293,8 @@ class SeatingPlan {
             this.gradeTable.get(studentId).delete(column);
         }
 
-        // Update cell styling
-        const gradeValue = parseFloat(grade);
+        // Update cell styling (use dot notation for parseFloat)
+        const gradeValue = parseFloat(gradeForValidation);
         input.className = 'grade-input';
         if (!isNaN(gradeValue)) {
             if (gradeValue >= 1.0 && gradeValue <= 1.5) input.className += ' grade-1';
@@ -3289,7 +3308,46 @@ class SeatingPlan {
         // Recalculate and update average for this student
         this.updateStudentAverage(studentId);
         
+        // Update period grades that contain this column
+        this.updatePeriodGradesForColumn(studentId, column);
+        
         this.saveCurrentClassState();
+    }
+
+    updatePeriodGradesForColumn(studentId, column) {
+        // Find all periods that contain this column
+        const affectedPeriods = [];
+        this.periods.forEach((period, periodId) => {
+            if (period.columns.includes(column)) {
+                affectedPeriods.push(periodId);
+            }
+        });
+
+        // Update period grade cells for this student in the current table
+        affectedPeriods.forEach(periodId => {
+            const periodGrade = this.calculatePeriodGrade(studentId, periodId);
+            const periodGradeDisplay = periodGrade !== null ? periodGrade.toString().replace('.', ',') : '-';
+            
+            // Find the period grade cell in the DOM and update it
+            const periodGradeCell = document.querySelector(
+                `td[data-student-id="${studentId}"][data-period-id="${periodId}"]`
+            );
+            
+            if (periodGradeCell) {
+                periodGradeCell.textContent = periodGradeDisplay;
+                
+                // Update cell styling based on grade
+                periodGradeCell.className = 'period-grade-cell';
+                if (periodGrade !== null && !isNaN(periodGrade)) {
+                    if (periodGrade >= 1.0 && periodGrade <= 1.5) periodGradeCell.className += ' grade-1';
+                    else if (periodGrade > 1.5 && periodGrade <= 2.5) periodGradeCell.className += ' grade-2';
+                    else if (periodGrade > 2.5 && periodGrade <= 3.5) periodGradeCell.className += ' grade-3';
+                    else if (periodGrade > 3.5 && periodGrade <= 4.5) periodGradeCell.className += ' grade-4';
+                    else if (periodGrade > 4.5 && periodGrade <= 5.5) periodGradeCell.className += ' grade-5';
+                    else periodGradeCell.className += ' grade-6';
+                }
+            }
+        });
     }
 
     updateStudentAverage(studentId) {
