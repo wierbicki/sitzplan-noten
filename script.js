@@ -133,7 +133,17 @@ class SeatingPlan {
             deskElement.appendChild(label);
         } else {
             // Desk with students
-            desk.students.forEach((student, index) => {
+            // For double desks, sort students by position to ensure consistent visual order
+            let studentsToRender = [...desk.students];
+            if (desk.type === 'double') {
+                studentsToRender.sort((a, b) => {
+                    // Left position comes first, then right, then undefined positions
+                    const positionOrder = { 'left': 0, 'right': 1, undefined: 2 };
+                    return (positionOrder[a.deskPosition] || 2) - (positionOrder[b.deskPosition] || 2);
+                });
+            }
+            
+            studentsToRender.forEach((student, index) => {
                 const studentCard = this.createStudentCard(student);
                 
                 // For double desks, apply consistent positioning based on deskPosition property
@@ -1910,19 +1920,24 @@ class SeatingPlan {
             if (targetDesk.students.length > 0) {
                 const existingStudent = targetDesk.students[0];
                 
-                // If the existing student has a position, place new student on opposite side
+                // If the existing student has a defined position, place new student on opposite side
+                // NEVER change the existing student's position if it's already set
                 if (existingStudent.deskPosition === 'left') {
                     student.deskPosition = 'right';
                 } else if (existingStudent.deskPosition === 'right') {
                     student.deskPosition = 'left';
                 } else {
-                    // If existing student has no position, assign based on drop
-                    // Ensure we always have valid positions
-                    if (dropPosition === 'left' || dropPosition === 'right') {
-                        student.deskPosition = dropPosition;
-                        existingStudent.deskPosition = dropPosition === 'left' ? 'right' : 'left';
+                    // If existing student has no position, assign based on drop position
+                    // The existing student keeps their current position, new student takes the other
+                    if (dropPosition === 'left') {
+                        student.deskPosition = 'left';
+                        existingStudent.deskPosition = 'right';
+                    } else if (dropPosition === 'right') {
+                        student.deskPosition = 'right';
+                        existingStudent.deskPosition = 'left';
                     } else {
                         // Default assignment when drop position is center or invalid
+                        // Give precedence to the drop position if available
                         student.deskPosition = 'left';
                         existingStudent.deskPosition = 'right';
                     }
