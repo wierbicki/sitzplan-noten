@@ -854,6 +854,17 @@ body {
     cursor: not-allowed;
 }
 
+/* Red styling for absence checkbox */
+.extended-grade-table input[type="checkbox"][title="Abw"] {
+    accent-color: #ff453a;
+    width: 16px;
+    height: 16px;
+}
+
+.extended-grade-table input[type="checkbox"][title="Abw"]:checked {
+    accent-color: #d70015;
+}
+
 .floating-header-toggle {
     position: fixed;
     top: 20px;
