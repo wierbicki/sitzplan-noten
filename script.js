@@ -1265,8 +1265,7 @@ class SeatingPlan {
             return null;
         }
         
-        let totalCounter = 0;
-        let hasValidGrades = false;
+        const validGrades = [];
         
         period.columns.forEach(column => {
             // Skip if student was absent for this column
@@ -1277,23 +1276,18 @@ class SeatingPlan {
             if (studentGrades.has(column)) {
                 const grade = parseFloat(studentGrades.get(column));
                 if (!isNaN(grade)) {
-                    // Convert grade back to counter value
-                    // startingGrade - grade = 0.5 * counter
-                    // counter = (startingGrade - grade) / 0.5
-                    const counterValue = (this.startingGrade - grade) / 0.5;
-                    totalCounter += Math.max(0, counterValue);
-                    hasValidGrades = true;
+                    validGrades.push(grade);
                 }
             }
         });
         
-        if (!hasValidGrades) {
+        if (validGrades.length === 0) {
             return null; // No valid grades for this period
         }
         
-        // Calculate final grade: startingGrade - (totalCounter * 0.5)
-        const finalGrade = Math.max(1.0, this.startingGrade - (totalCounter * 0.5));
-        return parseFloat(finalGrade.toFixed(1));
+        // Calculate simple mathematical average of all grades in the period
+        const average = validGrades.reduce((sum, grade) => sum + grade, 0) / validGrades.length;
+        return parseFloat(average.toFixed(1));
     }
     
     generatePeriodGroups(sortedDateColumns) {
