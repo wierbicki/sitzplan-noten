@@ -2691,6 +2691,26 @@ class SeatingPlan {
         return this.desks.some(desk => desk.students.some(s => s.id == studentId));
     }
 
+    setupAbsenceEventDelegation() {
+        // Remove any existing event listeners to prevent duplicates
+        const container = document.getElementById('gradeTableContainer');
+        const existingHandler = container._absenceHandler;
+        if (existingHandler) {
+            container.removeEventListener('change', existingHandler);
+        }
+        
+        // Create new event handler
+        const handler = (e) => {
+            if (e.target.classList.contains('absence-checkbox')) {
+                this.toggleAbsence(e.target);
+            }
+        };
+        
+        // Store reference for cleanup and add listener
+        container._absenceHandler = handler;
+        container.addEventListener('change', handler);
+    }
+
     showExtendedGradeTable() {
         if (!this.currentClassId || !this.showGrades) {
             return;
@@ -2841,10 +2861,10 @@ class SeatingPlan {
                         <td>
                             <div style="display: flex; align-items: center; justify-content: center; gap: 4px;">
                                 <input type="checkbox" 
+                                       class="absence-checkbox"
                                        ${isAbsent ? 'checked' : ''} 
                                        data-student-id="${student.id}" 
                                        data-column="${dateColumn}"
-                                       onchange="window.seatingPlan.toggleAbsence(this)"
                                        title="Abw">
                                 <input type="text" class="grade-input ${gradeClass}${isAbsent ? ' absent' : ''}" 
                                        value="${isAbsent ? '' : grade}" 
@@ -2891,6 +2911,10 @@ class SeatingPlan {
 
         // Insert table into modal and show
         document.getElementById('gradeTableContainer').innerHTML = tableHTML;
+        
+        // Setup event delegation for absence checkboxes
+        this.setupAbsenceEventDelegation();
+        
         document.getElementById('gradeTableModal').style.display = 'block';
     }
 
@@ -2926,6 +2950,14 @@ class SeatingPlan {
                 studentHiddenGrades.set(newName, hiddenGrade);
             }
         });
+        
+        // Update column names in periods
+        this.periods.forEach(period => {
+            const columnIndex = period.columns.indexOf(oldName);
+            if (columnIndex !== -1) {
+                period.columns[columnIndex] = newName;
+            }
+        });
 
         this.saveCurrentClassState();
         this.showExtendedGradeTable();
@@ -2935,6 +2967,7 @@ class SeatingPlan {
         const studentId = parseFloat(checkbox.dataset.studentId);
         const column = checkbox.dataset.column;
         const isAbsent = checkbox.checked;
+        
         
         // Initialize absence table if not exists
         if (!this.absenceTable.has(studentId)) {
@@ -3093,6 +3126,29 @@ class SeatingPlan {
         // Remove column from all student hidden grades tables
         this.hiddenGrades.forEach(studentHiddenGrades => {
             studentHiddenGrades.delete(columnName);
+        });
+        
+        // Remove column from periods and clean up empty periods
+        const periodsToDelete = [];
+        this.periods.forEach((period, periodId) => {
+            const columnIndex = period.columns.indexOf(columnName);
+            if (columnIndex !== -1) {
+                period.columns.splice(columnIndex, 1);
+                
+                // If period has no columns left, mark for deletion
+                if (period.columns.length === 0) {
+                    periodsToDelete.push(periodId);
+                }
+            }
+        });
+        
+        // Delete empty periods
+        periodsToDelete.forEach(periodId => {
+            this.periods.delete(periodId);
+            // Update active period if necessary
+            if (this.activePeriodId === periodId) {
+                this.activePeriodId = null;
+            }
         });
 
         this.saveCurrentClassState();
