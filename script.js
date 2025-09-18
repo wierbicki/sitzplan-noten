@@ -3518,7 +3518,7 @@ class SeatingPlan {
             }
         });
         
-        // Only add period header row if we have multi-day periods
+        // Check if we have multi-day periods and add headers accordingly
         const hasMultiDayPeriods = periodGroups.some(group => group.columns.length > 1);
         if (hasMultiDayPeriods) {
             excelData.push(periodHeaderRow);
@@ -3578,7 +3578,7 @@ class SeatingPlan {
         
         ws['!cols'] = columnWidths;
 
-        // Style the header rows
+        // Style the header rows and add merges for period headers
         const headerRange = XLSX.utils.decode_range(ws['!ref']);
         const headerRowCount = hasMultiDayPeriods ? 2 : 1;
         
@@ -3591,6 +3591,32 @@ class SeatingPlan {
                         fill: { fgColor: { rgb: "CCCCCC" } }
                     };
                 }
+            }
+        }
+
+        // Add cell merges for period headers if we have multi-day periods
+        if (hasMultiDayPeriods) {
+            const merges = [];
+            let currentCol = 3; // Start after Nachname, Vorname, Durchschnitt
+            
+            periodGroups.forEach(group => {
+                if (group.columns.length > 1) {
+                    const spanCount = group.columns.length + (group.periodId ? 1 : 0);
+                    if (spanCount > 1) {
+                        // Merge cells for period header
+                        merges.push({
+                            s: { r: 0, c: currentCol },
+                            e: { r: 0, c: currentCol + spanCount - 1 }
+                        });
+                    }
+                    currentCol += spanCount;
+                } else {
+                    currentCol += 1;
+                }
+            });
+            
+            if (merges.length > 0) {
+                ws['!merges'] = merges;
             }
         }
 
