@@ -1247,7 +1247,22 @@ class SeatingPlan {
         const studentAbsences = this.absenceTable.get(studentId);
         
         if (!studentGrades) {
-            return this.startingGrade;
+            return null; // No grades available
+        }
+        
+        // Check if student was absent for ALL days in this period
+        let absentDays = 0;
+        let totalDays = period.columns.length;
+        
+        period.columns.forEach(column => {
+            if (studentAbsences && studentAbsences.get(column)) {
+                absentDays++;
+            }
+        });
+        
+        // If student was absent for all days in the period, return null (no grade)
+        if (absentDays === totalDays) {
+            return null;
         }
         
         let totalCounter = 0;
@@ -1273,7 +1288,7 @@ class SeatingPlan {
         });
         
         if (!hasValidGrades) {
-            return this.startingGrade;
+            return null; // No valid grades for this period
         }
         
         // Calculate final grade: startingGrade - (totalCounter * 0.5)
@@ -1367,21 +1382,25 @@ class SeatingPlan {
         }
         
         // Calculate average based on period grades
+        // Each period counts equally, regardless of whether it's complete or incomplete
         const periodGrades = [];
         
         this.periods.forEach((period, periodId) => {
             const periodGrade = this.calculatePeriodGrade(studentId, periodId);
+            // Only include periods where student was present for at least one day
+            // (calculatePeriodGrade returns null if absent for all days)
             if (periodGrade !== null && !isNaN(periodGrade)) {
                 periodGrades.push(periodGrade);
             }
         });
         
-        // If student has no valid period grades, return '-' like old behavior
+        // If student has no valid period grades, return '-'
         if (periodGrades.length === 0) {
             return '-';
         }
         
-        // Calculate average of period grades
+        // Calculate simple average of period grades
+        // Complete and incomplete periods are weighted equally
         const average = periodGrades.reduce((sum, grade) => sum + grade, 0) / periodGrades.length;
         return average.toFixed(1);
     }
