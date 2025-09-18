@@ -2445,7 +2445,7 @@ class SeatingPlan {
                                    data-student-id="${student.id}" 
                                    data-column="${dateColumn}"
                                    onchange="window.seatingPlan.toggleAbsence(this)"
-                                   title="Abwesend">
+                                   title="Abw">
                             <input type="text" class="grade-input ${gradeClass}" 
                                    value="${isAbsent ? '' : grade}" 
                                    data-student-id="${student.id}" 
@@ -2453,7 +2453,7 @@ class SeatingPlan {
                                    ${isAbsent ? 'disabled' : ''}
                                    onchange="window.seatingPlan.updateGrade(this)"
                                    onblur="window.seatingPlan.updateGrade(this)"
-                                   placeholder="${isAbsent ? 'Abwesend' : ''}">
+                                   placeholder="${isAbsent ? 'Abw' : ''}">
                         </div>
                     </td>
                 `;
