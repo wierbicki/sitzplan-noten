@@ -18,6 +18,7 @@ class SeatingPlan {
         this.startingGrade = 4.0; // Default starting grade
         this.gradeTable = new Map(); // Store grade table data: studentId -> Map(dateColumn -> grade)
         this.absenceTable = new Map(); // Store absence data: studentId -> Map(dateColumn -> boolean)
+        this.hiddenGrades = new Map(); // Store temporarily hidden grades due to absence: studentId -> Map(dateColumn -> grade)
         this.isDragging = false; // Track if drag operation is active
         this.dragStartPosition = null; // Track initial position for drag detection
         this.isEditingClass = false; // Track if we're editing a class
@@ -705,7 +706,8 @@ class SeatingPlan {
             showGrades: false,
             startingGrade: 4.0,
             gradeTable: new Map(),
-            absenceTable: new Map()
+            absenceTable: new Map(),
+            hiddenGrades: new Map()
         };
 
         this.classes.set(defaultClass.id, defaultClass);
@@ -839,6 +841,16 @@ class SeatingPlan {
                 this.absenceTable.set(studentId, studentAbsenceMap);
             });
         }
+        
+        // Properly reconstruct nested Map structure for hiddenGrades
+        this.hiddenGrades = new Map();
+        if (classData.hiddenGrades && Array.isArray(classData.hiddenGrades)) {
+            classData.hiddenGrades.forEach(([studentId, hiddenData]) => {
+                // Reconstruct inner Map from the saved array
+                const studentHiddenMap = new Map(hiddenData || []);
+                this.hiddenGrades.set(studentId, studentHiddenMap);
+            });
+        }
 
         // Initialize nextDeskId based on existing desks to avoid ID conflicts
         if (this.desks.length > 0) {
@@ -919,6 +931,11 @@ class SeatingPlan {
         // Properly serialize nested Map structure for absenceTable
         classData.absenceTable = Array.from(this.absenceTable.entries()).map(([studentId, studentAbsenceMap]) => {
             return [studentId, Array.from(studentAbsenceMap.entries())];
+        });
+        
+        // Properly serialize nested Map structure for hiddenGrades
+        classData.hiddenGrades = Array.from(this.hiddenGrades.entries()).map(([studentId, studentHiddenMap]) => {
+            return [studentId, Array.from(studentHiddenMap.entries())];
         });
 
         this.classes.set(this.currentClassId, classData);
@@ -2066,7 +2083,8 @@ class SeatingPlan {
                     showGrades: classData.showGrades || false,
                     startingGrade: classData.startingGrade || 4.0,
                     gradeTable: classData.gradeTable || [],
-                    absenceTable: classData.absenceTable || []
+                    absenceTable: classData.absenceTable || [],
+                    hiddenGrades: classData.hiddenGrades || []
                 };
                 exportData.classes.push(exportClass);
             });
@@ -2141,7 +2159,8 @@ class SeatingPlan {
                         showGrades: classData.showGrades || false,
                         startingGrade: classData.startingGrade || 4.0,
                         gradeTable: classData.gradeTable || [],
-                        absenceTable: classData.absenceTable || []
+                        absenceTable: classData.absenceTable || [],
+                        hiddenGrades: classData.hiddenGrades || []
                     };
                     this.classes.set(classData.id, importedClass);
                 });
@@ -2446,7 +2465,7 @@ class SeatingPlan {
                                    data-column="${dateColumn}"
                                    onchange="window.seatingPlan.toggleAbsence(this)"
                                    title="Abw">
-                            <input type="text" class="grade-input ${gradeClass}" 
+                            <input type="text" class="grade-input ${gradeClass}${isAbsent ? ' absent' : ''}" 
                                    value="${isAbsent ? '' : grade}" 
                                    data-student-id="${student.id}" 
                                    data-column="${dateColumn}"
@@ -2495,6 +2514,15 @@ class SeatingPlan {
                 studentAbsences.set(newName, absence);
             }
         });
+        
+        // Rename column in all student hidden grades tables
+        this.hiddenGrades.forEach(studentHiddenGrades => {
+            if (studentHiddenGrades.has(oldName)) {
+                const hiddenGrade = studentHiddenGrades.get(oldName);
+                studentHiddenGrades.delete(oldName);
+                studentHiddenGrades.set(newName, hiddenGrade);
+            }
+        });
 
         this.saveCurrentClassState();
         this.showExtendedGradeTable();
@@ -2510,16 +2538,36 @@ class SeatingPlan {
             this.absenceTable.set(studentId, new Map());
         }
         
+        // Initialize hidden grades table if not exists
+        if (!this.hiddenGrades.has(studentId)) {
+            this.hiddenGrades.set(studentId, new Map());
+        }
+        
         const studentAbsences = this.absenceTable.get(studentId);
+        const studentHiddenGrades = this.hiddenGrades.get(studentId);
         
         if (isAbsent) {
             studentAbsences.set(column, true);
-            // Clear grade when marked absent
+            // Save existing grade before hiding it
             if (this.gradeTable.has(studentId)) {
-                this.gradeTable.get(studentId).delete(column);
+                const studentGrades = this.gradeTable.get(studentId);
+                if (studentGrades.has(column)) {
+                    const existingGrade = studentGrades.get(column);
+                    studentHiddenGrades.set(column, existingGrade);
+                    studentGrades.delete(column);
+                }
             }
         } else {
             studentAbsences.delete(column);
+            // Restore hidden grade if it exists
+            if (studentHiddenGrades.has(column)) {
+                const hiddenGrade = studentHiddenGrades.get(column);
+                if (!this.gradeTable.has(studentId)) {
+                    this.gradeTable.set(studentId, new Map());
+                }
+                this.gradeTable.get(studentId).set(column, hiddenGrade);
+                studentHiddenGrades.delete(column);
+            }
         }
         
         this.saveCurrentClassState();
@@ -2539,6 +2587,11 @@ class SeatingPlan {
         // Remove column from all student absence tables
         this.absenceTable.forEach(studentAbsences => {
             studentAbsences.delete(columnName);
+        });
+        
+        // Remove column from all student hidden grades tables
+        this.hiddenGrades.forEach(studentHiddenGrades => {
+            studentHiddenGrades.delete(columnName);
         });
 
         this.saveCurrentClassState();
