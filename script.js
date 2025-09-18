@@ -138,8 +138,12 @@ class SeatingPlan {
             if (desk.type === 'double') {
                 studentsToRender.sort((a, b) => {
                     // Left position comes first, then right, then undefined positions
-                    const positionOrder = { 'left': 0, 'right': 1, undefined: 2 };
-                    return (positionOrder[a.deskPosition] || 2) - (positionOrder[b.deskPosition] || 2);
+                    const getPositionOrder = (position) => {
+                        if (position === 'left') return 0;
+                        if (position === 'right') return 1;
+                        return 2; // undefined or other values
+                    };
+                    return getPositionOrder(a.deskPosition) - getPositionOrder(b.deskPosition);
                 });
             }
             
