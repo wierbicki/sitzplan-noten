@@ -9,6 +9,8 @@ This is a classroom seating plan management application called "SeatMap Grading"
 - Changed application title from "Sitzplan" to "SeatMap Grading" 
 - Added dynamic version display (currently v2.1.0) that can be easily updated
 - Implemented comprehensive absence tracking system with automatic marking for unassigned students, centered grade table column headers, and enhanced data persistence including absence data in export/import functionality
+- Enhanced PDF and Excel export functions to support period-aware layout with grouped headers, period grade columns for multi-day periods, absence handling, and proper German locale formatting
+- Added current period indicator in header that displays the active period name, progress (current days/max days), and class default period length configuration
 
 # User Preferences
 

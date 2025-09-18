@@ -1440,6 +1440,7 @@ class SeatingPlan {
         this.renderStudentPool();
         this.updateGradeDisplay();
         this.updateStartingGradeButtons();
+        this.updatePeriodInfo();
     }
 
     updateGradeDisplay() {
