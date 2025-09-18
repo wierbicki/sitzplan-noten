@@ -2487,7 +2487,7 @@ class SeatingPlan {
             }
         });
         
-        // Rename column in all student absence tables
+        // Rename column in all student absence tables  
         this.absenceTable.forEach(studentAbsences => {
             if (studentAbsences.has(oldName)) {
                 const absence = studentAbsences.get(oldName);

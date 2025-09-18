@@ -2,6 +2,10 @@
 
 This is a German classroom seating plan management application called "Sitzplan - Klassenverwaltung" (Seating Plan - Class Management). It's a web-based tool that allows teachers to manage multiple classes, arrange students in a customizable grid layout, track student grades, and maintain various classroom metrics. The application features drag-and-drop functionality for seat arrangements, grade tracking with visual indicators, and persistent data storage using browser localStorage.
 
+# Recent Changes
+
+**September 18, 2025**: Implemented comprehensive absence tracking system with automatic marking for unassigned students, centered grade table column headers, and enhanced data persistence including absence data in export/import functionality.
+
 # User Preferences
 
 Preferred communication style: Simple, everyday language.
@@ -27,6 +31,7 @@ Preferred communication style: Simple, everyday language.
 
 ## Key Features Architecture
 - **Grade Management System**: Visual grade tracking with color-coded indicators and configurable starting grades
+- **Absence Tracking System**: Comprehensive absence tracking with automatic marking for unassigned students, excluding absences from grade calculations
 - **Counter System**: Student-specific counters with long-press interactions and visual feedback
 - **Multi-Modal Interface**: Overlay modals for student editing, class management, and grade tables
 - **Sidebar Integration**: Collapsible student list with real-time synchronization
