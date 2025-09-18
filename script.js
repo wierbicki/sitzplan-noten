@@ -926,6 +926,9 @@ class SeatingPlan {
         if (this.periods.size === 0 && this.gradeTable.size > 0) {
             this.migrateExistingGradesToPeriods();
         }
+        
+        // Migration: Convert German comma grades to numeric values
+        this.migrateGermanGradesToNumeric();
 
         // Initialize nextDeskId based on existing desks to avoid ID conflicts
         if (this.desks.length > 0) {
