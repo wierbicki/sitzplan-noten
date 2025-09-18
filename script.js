@@ -19,6 +19,8 @@ class SeatingPlan {
         this.gradeTable = new Map(); // Store grade table data: studentId -> Map(dateColumn -> grade)
         this.absenceTable = new Map(); // Store absence data: studentId -> Map(dateColumn -> boolean)
         this.hiddenGrades = new Map(); // Store temporarily hidden grades due to absence: studentId -> Map(dateColumn -> grade)
+        this.sortColumn = 'lastName'; // Current sort column
+        this.sortDirection = 'asc'; // 'asc' or 'desc'
         this.isDragging = false; // Track if drag operation is active
         this.dragStartPosition = null; // Track initial position for drag detection
         this.isEditingClass = false; // Track if we're editing a class
@@ -2396,30 +2398,32 @@ class SeatingPlan {
             });
         });
 
-        // Sort by lastname, then firstname
-        studentsWithGrades.sort((a, b) => {
-            const lastNameCompare = a.lastName.localeCompare(b.lastName, 'de');
-            if (lastNameCompare !== 0) return lastNameCompare;
-            return a.firstName.localeCompare(b.firstName, 'de');
-        });
+        // Sort by current sort column and direction
+        this.sortStudents(studentsWithGrades, sortedDateColumns);
 
         // Create table HTML
         let tableHTML = `
             <table class="extended-grade-table">
                 <thead>
                     <tr>
-                        <th>Nachname</th>
-                        <th>Vorname</th>
-                        <th>Durchschnitt</th>
+                        <th onclick="window.seatingPlan.sortTable('lastName')" style="cursor: pointer;">
+                            Nachname ${this.getSortIndicator('lastName')}
+                        </th>
+                        <th onclick="window.seatingPlan.sortTable('firstName')" style="cursor: pointer;">
+                            Vorname ${this.getSortIndicator('firstName')}
+                        </th>
+                        <th onclick="window.seatingPlan.sortTable('average')" style="cursor: pointer;">
+                            Durchschnitt ${this.getSortIndicator('average')}
+                        </th>
         `;
 
         // Add date column headers with edit/delete buttons
         sortedDateColumns.forEach(dateColumn => {
             tableHTML += `
-                <th>
+                <th onclick="window.seatingPlan.sortTable('${dateColumn}')" style="cursor: pointer;">
                     <div class="column-header">
-                        <span class="column-name" data-column="${dateColumn}" onclick="window.seatingPlan.editColumnName('${dateColumn}')">${dateColumn}</span>
-                        <button class="btn-small btn-danger" onclick="window.seatingPlan.deleteColumn('${dateColumn}')" title="Spalte löschen">×</button>
+                        <span class="column-name" data-column="${dateColumn}" onclick="event.stopPropagation(); window.seatingPlan.editColumnName('${dateColumn}')">${dateColumn} ${this.getSortIndicator(dateColumn)}</span>
+                        <button class="btn-small btn-danger" onclick="event.stopPropagation(); window.seatingPlan.deleteColumn('${dateColumn}')" title="Spalte löschen">×</button>
                     </div>
                 </th>
             `;
