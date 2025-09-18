@@ -2578,6 +2578,104 @@ class SeatingPlan {
         this.showExtendedGradeTable();
     }
 
+    getSortIndicator(column) {
+        if (this.sortColumn !== column) {
+            return ''; // No indicator if not current sort column
+        }
+        return this.sortDirection === 'asc' ? '▲' : '▼';
+    }
+
+    sortTable(column) {
+        // If clicking on same column, toggle direction
+        if (this.sortColumn === column) {
+            this.sortDirection = this.sortDirection === 'asc' ? 'desc' : 'asc';
+        } else {
+            // New column, default to ascending
+            this.sortColumn = column;
+            this.sortDirection = 'asc';
+        }
+        
+        // Refresh the table with new sorting
+        this.showExtendedGradeTable();
+    }
+
+    sortStudents(studentsWithGrades, sortedDateColumns) {
+        studentsWithGrades.sort((a, b) => {
+            let compareResult = 0;
+            
+            switch (this.sortColumn) {
+                case 'lastName':
+                    compareResult = a.lastName.localeCompare(b.lastName, 'de');
+                    if (compareResult === 0) {
+                        compareResult = a.firstName.localeCompare(b.firstName, 'de');
+                    }
+                    break;
+                case 'firstName':
+                    compareResult = a.firstName.localeCompare(b.firstName, 'de');
+                    if (compareResult === 0) {
+                        compareResult = a.lastName.localeCompare(b.lastName, 'de');
+                    }
+                    break;
+                case 'average':
+                    // Handle '-' for no average - put them at bottom
+                    if (a.average === '-' && b.average === '-') return 0;
+                    if (a.average === '-') return 1;
+                    if (b.average === '-') return -1;
+                    
+                    const avgA = parseFloat(a.average.replace(',', '.'));
+                    const avgB = parseFloat(b.average.replace(',', '.'));
+                    compareResult = avgA - avgB;
+                    
+                    // Tiebreaker: lastName then firstName
+                    if (compareResult === 0) {
+                        compareResult = a.lastName.localeCompare(b.lastName, 'de');
+                        if (compareResult === 0) {
+                            compareResult = a.firstName.localeCompare(b.firstName, 'de');
+                        }
+                    }
+                    break;
+                default:
+                    // Sort by date column (individual day)
+                    if (sortedDateColumns.includes(this.sortColumn)) {
+                        const gradeA = a.grades.get(this.sortColumn);
+                        const gradeB = b.grades.get(this.sortColumn);
+                        const isAbsentA = a.absences.get(this.sortColumn);
+                        const isAbsentB = b.absences.get(this.sortColumn);
+                        
+                        // Absent students go to bottom
+                        if (isAbsentA && !isAbsentB) return 1;
+                        if (!isAbsentA && isAbsentB) return -1;
+                        if (isAbsentA && isAbsentB) return 0;
+                        
+                        // Compare grades (empty grades go to bottom)
+                        if (!gradeA && !gradeB) return 0;
+                        if (!gradeA) return 1;
+                        if (!gradeB) return -1;
+                        
+                        const numGradeA = parseFloat(gradeA.replace(',', '.'));
+                        const numGradeB = parseFloat(gradeB.replace(',', '.'));
+                        compareResult = numGradeA - numGradeB;
+                        
+                        // Tiebreaker: lastName then firstName
+                        if (compareResult === 0) {
+                            compareResult = a.lastName.localeCompare(b.lastName, 'de');
+                            if (compareResult === 0) {
+                                compareResult = a.firstName.localeCompare(b.firstName, 'de');
+                            }
+                        }
+                    }
+                    break;
+            }
+            
+            // Apply sort direction
+            if (this.sortDirection === 'desc') {
+                compareResult = -compareResult;
+            }
+            
+            return compareResult;
+        });
+    }
+
     deleteColumn(columnName) {
         if (!confirm(`Möchten Sie die Spalte "${columnName}" wirklich löschen?`)) {
             return;
@@ -2695,12 +2793,9 @@ class SeatingPlan {
             });
         });
 
-        // Sort by lastname, then firstname
-        studentsWithGrades.sort((a, b) => {
-            const lastNameCompare = a.lastName.localeCompare(b.lastName, 'de');
-            if (lastNameCompare !== 0) return lastNameCompare;
-            return a.firstName.localeCompare(b.firstName, 'de');
-        });
+        // Sort using the same logic as extended table
+        const pseudoDateColumns = []; // No date columns in simple grade table
+        this.sortStudents(studentsWithGrades, pseudoDateColumns);
 
         // Store sorted students for PDF export
         this.sortedStudentsWithGrades = studentsWithGrades;
