@@ -2947,7 +2947,7 @@ class SeatingPlan {
                                        data-column="${dateColumn}"
                                        title="Abw">
                                 <input type="text" class="grade-input ${gradeClass}${isAbsent ? ' absent' : ''}" 
-                                       value="${isAbsent ? '' : grade}" 
+                                       value="${isAbsent ? '' : (grade ? grade.toString().replace('.', ',') : '')}" 
                                        data-student-id="${student.id}" 
                                        data-column="${dateColumn}"
                                        ${isAbsent ? 'disabled' : ''}
@@ -3273,22 +3273,28 @@ class SeatingPlan {
             
             // Get current saved grade for this student and column to restore it
             const studentGrades = this.gradeTable.get(studentId);
-            const savedGrade = studentGrades ? studentGrades.get(column) || '' : '';
+            const savedGrade = studentGrades ? studentGrades.get(column) : null;
             
-            // Reset to saved grade (or empty if no saved grade exists)
-            input.value = savedGrade;
+            // Reset to saved grade in German format (or empty if no saved grade exists)
+            if (savedGrade !== null && savedGrade !== undefined) {
+                input.value = savedGrade.toString().replace('.', ',');
+            } else {
+                input.value = '';
+            }
             input.focus();
             input.select(); // Select the text for easy editing
             return;
         }
 
-        // Update grade table
+        // Update grade table - store normalized numeric value (with dot as decimal separator)
         if (!this.gradeTable.has(studentId)) {
             this.gradeTable.set(studentId, new Map());
         }
         
         if (grade) {
-            this.gradeTable.get(studentId).set(column, grade);
+            // Store the normalized numeric value (dot notation) for calculations
+            const normalizedGrade = parseFloat(gradeForValidation);
+            this.gradeTable.get(studentId).set(column, normalizedGrade);
         } else {
             this.gradeTable.get(studentId).delete(column);
         }
@@ -3326,7 +3332,7 @@ class SeatingPlan {
         // Update period grade cells for this student in the current table
         affectedPeriods.forEach(periodId => {
             const periodGrade = this.calculatePeriodGrade(studentId, periodId);
-            const periodGradeDisplay = periodGrade !== null ? periodGrade.toString().replace('.', ',') : '-';
+            const periodGradeDisplay = periodGrade !== null ? periodGrade.toFixed(1).replace('.', ',') : '-';
             
             // Find the period grade cell in the DOM and update it
             const periodGradeCell = document.querySelector(
@@ -3334,18 +3340,23 @@ class SeatingPlan {
             );
             
             if (periodGradeCell) {
-                periodGradeCell.textContent = periodGradeDisplay;
-                
-                // Update cell styling based on grade
-                periodGradeCell.className = 'period-grade-cell';
-                if (periodGrade !== null && !isNaN(periodGrade)) {
-                    if (periodGrade >= 1.0 && periodGrade <= 1.5) periodGradeCell.className += ' grade-1';
-                    else if (periodGrade > 1.5 && periodGrade <= 2.5) periodGradeCell.className += ' grade-2';
-                    else if (periodGrade > 2.5 && periodGrade <= 3.5) periodGradeCell.className += ' grade-3';
-                    else if (periodGrade > 3.5 && periodGrade <= 4.5) periodGradeCell.className += ' grade-4';
-                    else if (periodGrade > 4.5 && periodGrade <= 5.5) periodGradeCell.className += ' grade-5';
-                    else periodGradeCell.className += ' grade-6';
+                // Update the text content of the <strong> element inside the cell
+                const strongElement = periodGradeCell.querySelector('strong');
+                if (strongElement) {
+                    strongElement.textContent = periodGradeDisplay;
                 }
+                
+                // Reset and update cell styling based on grade
+                let gradeClass = '';
+                if (periodGrade !== null && !isNaN(periodGrade)) {
+                    if (periodGrade >= 1.0 && periodGrade <= 1.5) gradeClass = 'grade-1';
+                    else if (periodGrade > 1.5 && periodGrade <= 2.5) gradeClass = 'grade-2';
+                    else if (periodGrade > 2.5 && periodGrade <= 3.5) gradeClass = 'grade-3';
+                    else if (periodGrade > 3.5 && periodGrade <= 4.5) gradeClass = 'grade-4';
+                    else if (periodGrade > 4.5 && periodGrade <= 5.5) gradeClass = 'grade-5';
+                    else gradeClass = 'grade-6';
+                }
+                periodGradeCell.className = `period-grade-cell ${gradeClass}`;
             }
         });
     }
