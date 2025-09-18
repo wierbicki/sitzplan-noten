@@ -741,6 +741,40 @@ class SeatingPlan {
         }
     }
 
+    migrateGermanGradesToNumeric() {
+        // One-time migration to convert German comma grades to numeric values
+        let needsSave = false;
+        
+        this.gradeTable.forEach((studentGrades, studentId) => {
+            studentGrades.forEach((grade, column) => {
+                if (typeof grade === 'string' && grade.includes(',')) {
+                    const numericGrade = parseFloat(grade.replace(',', '.'));
+                    if (!isNaN(numericGrade)) {
+                        studentGrades.set(column, numericGrade);
+                        needsSave = true;
+                    }
+                }
+            });
+        });
+        
+        // Also migrate hidden grades
+        this.hiddenGrades.forEach((studentHiddenGrades, studentId) => {
+            studentHiddenGrades.forEach((grade, column) => {
+                if (typeof grade === 'string' && grade.includes(',')) {
+                    const numericGrade = parseFloat(grade.replace(',', '.'));
+                    if (!isNaN(numericGrade)) {
+                        studentHiddenGrades.set(column, numericGrade);
+                        needsSave = true;
+                    }
+                }
+            });
+        });
+        
+        if (needsSave) {
+            this.saveCurrentClassState();
+        }
+    }
+
     createDefaultClass() {
         const defaultClass = {
             id: 'default_' + Date.now(),
