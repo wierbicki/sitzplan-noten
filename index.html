@@ -23,9 +23,14 @@
                     <select id="classSelect" class="class-select">
                         <option value="">Klasse auswählen...</option>
                     </select>
-                    <button class="btn-primary" id="addClass">Neue Klasse</button>
-                    <button class="btn-secondary" id="editClass" style="display: none;">Klasse bearbeiten</button>
-                    <button class="btn-danger" id="deleteClass" style="display: none;">Klasse löschen</button>
+                    <div class="class-dropdown-menu">
+                        <button class="btn-dropdown" id="classOptions">Klassenverwaltung ⚙️</button>
+                        <div class="dropdown-content" id="classDropdownContent">
+                            <button class="dropdown-item" id="addClass">Neue Klasse</button>
+                            <button class="dropdown-item" id="editClass" style="display: none;">Klasse bearbeiten</button>
+                            <button class="dropdown-item" id="deleteClass" style="display: none;">Klasse löschen</button>
+                        </div>
+                    </div>
                     <div class="period-info" id="periodInfo" style="display: none;">
                         <span class="period-label">Aktuelle Periode:</span>
                         <span class="period-text" id="periodText"></span>

@@ -660,10 +660,20 @@ class SeatingPlan {
             dropdown.classList.toggle('show');
         });
 
+        // Class options dropdown
+        document.getElementById('classOptions').addEventListener('click', (e) => {
+            e.stopPropagation();
+            const dropdown = document.getElementById('classDropdownContent');
+            dropdown.classList.toggle('show');
+        });
+
         // Close dropdown when clicking outside
         document.addEventListener('click', (e) => {
             if (!e.target.closest('.dropdown-menu')) {
                 document.getElementById('dropdownContent').classList.remove('show');
+            }
+            if (!e.target.closest('.class-dropdown-menu')) {
+                document.getElementById('classDropdownContent').classList.remove('show');
             }
         });
 
@@ -1191,8 +1201,9 @@ class SeatingPlan {
             return;
         }
         
-        // Format period information
-        const periodInfo = `${currentPeriod.name} (${currentPeriod.columns.length}/${currentPeriod.maxColumns} Tage)`;
+        // Format period information - extract number from period name (e.g., "Periode 1" -> "1")
+        const periodNumber = currentPeriod.name.replace(/^Periode\s*/, '') || currentPeriod.name;
+        const periodInfo = `${periodNumber} (${currentPeriod.columns.length}/${currentPeriod.maxColumns} Tage)`;
         const defaultPeriodLength = currentClass.defaultPeriodLength || 1;
         const periodConfig = defaultPeriodLength > 1 ? ` | Standard: ${defaultPeriodLength} Tage` : '';
         
