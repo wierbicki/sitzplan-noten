@@ -2289,15 +2289,21 @@ class SeatingPlan {
             return; // User cancelled
         }
 
-        // Initialize grade table for all students if not exists
+        // Initialize grade table and attendance table for all students if not exists
         this.students.forEach(student => {
             if (!this.gradeTable.has(student.id)) {
                 this.gradeTable.set(student.id, new Map());
+            }
+            if (!this.attendanceTable.has(student.id)) {
+                this.attendanceTable.set(student.id, new Map());
             }
             
             // Add current grade from counter as initial value for new column
             const currentGrade = this.calculateGrade(student.id);
             this.gradeTable.get(student.id).set(columnName, currentGrade);
+            
+            // Set all students as present by default for new column
+            this.attendanceTable.get(student.id).set(columnName, true);
         });
 
         // Save state and show table
@@ -2389,6 +2395,10 @@ class SeatingPlan {
                 const gradeValue = parseFloat(grade);
                 let gradeClass = '';
                 
+                // Get attendance status
+                const studentAttendance = this.attendanceTable.get(student.id) || new Map();
+                const isPresent = studentAttendance.get(dateColumn) !== false; // Default to present if not set
+                
                 if (!isNaN(gradeValue)) {
                     if (gradeValue >= 1.0 && gradeValue <= 1.5) gradeClass = 'grade-1';
                     else if (gradeValue > 1.5 && gradeValue <= 2.5) gradeClass = 'grade-2';
@@ -2399,13 +2409,25 @@ class SeatingPlan {
                 }
 
                 tableHTML += `
-                    <td>
-                        <input type="text" class="grade-input ${gradeClass}" 
-                               value="${grade}" 
-                               data-student-id="${student.id}" 
-                               data-column="${dateColumn}"
-                               onchange="window.seatingPlan.updateGrade(this)"
-                               onblur="window.seatingPlan.updateGrade(this)">
+                    <td class="grade-cell">
+                        <div class="grade-attendance-container">
+                            <label class="attendance-label">
+                                <input type="checkbox" class="attendance-checkbox" 
+                                       ${isPresent ? 'checked' : ''} 
+                                       data-student-id="${student.id}" 
+                                       data-column="${dateColumn}"
+                                       onchange="window.seatingPlan.updateAttendance(this)"
+                                       title="Anwesend">
+                                <span class="attendance-text">A</span>
+                            </label>
+                            <input type="text" class="grade-input ${gradeClass}" 
+                                   value="${grade}" 
+                                   data-student-id="${student.id}" 
+                                   data-column="${dateColumn}"
+                                   onchange="window.seatingPlan.updateGrade(this)"
+                                   onblur="window.seatingPlan.updateGrade(this)"
+                                   ${!isPresent ? 'disabled style="background-color: #f0f0f0; color: #999;"' : ''}>
+                        </div>
                     </td>
                 `;
             });
@@ -2438,6 +2460,15 @@ class SeatingPlan {
             }
         });
 
+        // Rename column in all student attendance tables
+        this.attendanceTable.forEach(studentAttendance => {
+            if (studentAttendance.has(oldName)) {
+                const attendance = studentAttendance.get(oldName);
+                studentAttendance.delete(oldName);
+                studentAttendance.set(newName, attendance);
+            }
+        });
+
         this.saveCurrentClassState();
         this.showExtendedGradeTable();
     }
@@ -2452,6 +2483,41 @@ class SeatingPlan {
             studentGrades.delete(columnName);
         });
 
+        // Remove column from all student attendance tables
+        this.attendanceTable.forEach(studentAttendance => {
+            studentAttendance.delete(columnName);
+        });
+
+        this.saveCurrentClassState();
+        this.showExtendedGradeTable();
+    }
+
+    updateAttendance(checkbox) {
+        const studentId = parseFloat(checkbox.dataset.studentId);
+        const column = checkbox.dataset.column;
+        const isPresent = checkbox.checked;
+
+        // Update attendance table
+        if (!this.attendanceTable.has(studentId)) {
+            this.attendanceTable.set(studentId, new Map());
+        }
+        
+        this.attendanceTable.get(studentId).set(column, isPresent);
+
+        // Find the corresponding grade input and enable/disable it
+        const gradeInput = checkbox.closest('td').querySelector('.grade-input');
+        if (gradeInput) {
+            gradeInput.disabled = !isPresent;
+            if (!isPresent) {
+                gradeInput.style.backgroundColor = '#f0f0f0';
+                gradeInput.style.color = '#999';
+            } else {
+                gradeInput.style.backgroundColor = '';
+                gradeInput.style.color = '';
+            }
+        }
+
+        // Refresh the table to update averages
         this.saveCurrentClassState();
         this.showExtendedGradeTable();
     }
