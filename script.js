@@ -17,6 +17,7 @@ class SeatingPlan {
         this.showGrades = false; // Toggle for grade display
         this.startingGrade = 4.0; // Default starting grade
         this.gradeTable = new Map(); // Store grade table data: studentId -> Map(dateColumn -> grade)
+        this.absenceTable = new Map(); // Store absence data: studentId -> Map(dateColumn -> boolean)
         this.isDragging = false; // Track if drag operation is active
         this.dragStartPosition = null; // Track initial position for drag detection
         this.isEditingClass = false; // Track if we're editing a class
@@ -703,7 +704,8 @@ class SeatingPlan {
             gridColumns: 6,
             showGrades: false,
             startingGrade: 4.0,
-            gradeTable: new Map()
+            gradeTable: new Map(),
+            absenceTable: new Map()
         };
 
         this.classes.set(defaultClass.id, defaultClass);
@@ -827,6 +829,16 @@ class SeatingPlan {
                 this.gradeTable.set(studentId, studentGradesMap);
             });
         }
+        
+        // Properly reconstruct nested Map structure for absenceTable
+        this.absenceTable = new Map();
+        if (classData.absenceTable && Array.isArray(classData.absenceTable)) {
+            classData.absenceTable.forEach(([studentId, absenceData]) => {
+                // Reconstruct inner Map from the saved array
+                const studentAbsenceMap = new Map(absenceData || []);
+                this.absenceTable.set(studentId, studentAbsenceMap);
+            });
+        }
 
         // Initialize nextDeskId based on existing desks to avoid ID conflicts
         if (this.desks.length > 0) {
@@ -902,6 +914,11 @@ class SeatingPlan {
         // Properly serialize nested Map structure for gradeTable
         classData.gradeTable = Array.from(this.gradeTable.entries()).map(([studentId, studentGradesMap]) => {
             return [studentId, Array.from(studentGradesMap.entries())];
+        });
+        
+        // Properly serialize nested Map structure for absenceTable
+        classData.absenceTable = Array.from(this.absenceTable.entries()).map(([studentId, studentAbsenceMap]) => {
+            return [studentId, Array.from(studentAbsenceMap.entries())];
         });
 
         this.classes.set(this.currentClassId, classData);
@@ -2048,7 +2065,8 @@ class SeatingPlan {
                     gridColumns: classData.gridColumns || 6,
                     showGrades: classData.showGrades || false,
                     startingGrade: classData.startingGrade || 4.0,
-                    gradeTable: classData.gradeTable || []
+                    gradeTable: classData.gradeTable || [],
+                    absenceTable: classData.absenceTable || []
                 };
                 exportData.classes.push(exportClass);
             });
@@ -2122,7 +2140,8 @@ class SeatingPlan {
                         gridColumns: classData.gridColumns || 6,
                         showGrades: classData.showGrades || false,
                         startingGrade: classData.startingGrade || 4.0,
-                        gradeTable: classData.gradeTable || []
+                        gradeTable: classData.gradeTable || [],
+                        absenceTable: classData.absenceTable || []
                     };
                     this.classes.set(classData.id, importedClass);
                 });
@@ -2272,20 +2291,35 @@ class SeatingPlan {
             return; // User cancelled
         }
 
-        // Initialize grade table for all students if not exists
+        // Initialize grade and absence tables for all students if not exists
         this.students.forEach(student => {
             if (!this.gradeTable.has(student.id)) {
                 this.gradeTable.set(student.id, new Map());
             }
+            if (!this.absenceTable.has(student.id)) {
+                this.absenceTable.set(student.id, new Map());
+            }
             
-            // Add current grade from counter as initial value for new column
-            const currentGrade = this.calculateGrade(student.id);
-            this.gradeTable.get(student.id).set(columnName, currentGrade);
+            // Check if student is assigned to a desk
+            const isAssigned = this.isStudentAssignedToDesk(student.id);
+            
+            if (isAssigned) {
+                // Add current grade from counter as initial value for new column
+                const currentGrade = this.calculateGrade(student.id);
+                this.gradeTable.get(student.id).set(columnName, currentGrade);
+            } else {
+                // Mark as absent if not assigned to desk
+                this.absenceTable.get(student.id).set(columnName, true);
+            }
         });
 
         // Save state and show table
         this.saveCurrentClassState();
         this.showExtendedGradeTable();
+    }
+
+    isStudentAssignedToDesk(studentId) {
+        return this.desks.some(desk => desk.students.some(s => s.id == studentId));
     }
 
     showExtendedGradeTable() {
@@ -2303,14 +2337,34 @@ class SeatingPlan {
 
         const sortedDateColumns = Array.from(dateColumns).sort();
 
+        // Auto-mark unassigned students as absent for all dates
+        this.students.forEach(student => {
+            const isAssigned = this.isStudentAssignedToDesk(student.id);
+            
+            if (!this.absenceTable.has(student.id)) {
+                this.absenceTable.set(student.id, new Map());
+            }
+            const studentAbsences = this.absenceTable.get(student.id);
+            
+            sortedDateColumns.forEach(dateColumn => {
+                if (!isAssigned && !studentAbsences.has(dateColumn)) {
+                    studentAbsences.set(dateColumn, true); // Mark as absent
+                }
+            });
+        });
+
         // Collect all students with their grades
         const studentsWithGrades = [];
 
         this.students.forEach(student => {
             const studentGrades = this.gradeTable.get(student.id) || new Map();
+            const studentAbsences = this.absenceTable.get(student.id) || new Map();
             
-            // Calculate average
-            const grades = Array.from(studentGrades.values()).map(g => parseFloat(g)).filter(g => !isNaN(g));
+            // Calculate average excluding absent days
+            const grades = Array.from(studentGrades.entries())
+                .filter(([dateColumn, grade]) => !studentAbsences.get(dateColumn)) // Exclude absent days
+                .map(([, grade]) => parseFloat(grade))
+                .filter(g => !isNaN(g));
             const average = grades.length > 0 ? (grades.reduce((sum, g) => sum + g, 0) / grades.length).toFixed(1) : '-';
 
             studentsWithGrades.push({
@@ -2318,6 +2372,7 @@ class SeatingPlan {
                 lastName: student.lastName,
                 firstName: student.firstName,
                 grades: studentGrades,
+                absences: studentAbsences,
                 average: average
             });
         });
@@ -2369,6 +2424,7 @@ class SeatingPlan {
             // Add grade cells for each date column
             sortedDateColumns.forEach(dateColumn => {
                 const grade = student.grades.get(dateColumn) || '';
+                const isAbsent = student.absences.get(dateColumn) || false;
                 const gradeValue = parseFloat(grade);
                 let gradeClass = '';
                 
@@ -2383,12 +2439,22 @@ class SeatingPlan {
 
                 tableHTML += `
                     <td>
-                        <input type="text" class="grade-input ${gradeClass}" 
-                               value="${grade}" 
-                               data-student-id="${student.id}" 
-                               data-column="${dateColumn}"
-                               onchange="window.seatingPlan.updateGrade(this)"
-                               onblur="window.seatingPlan.updateGrade(this)">
+                        <div style="display: flex; align-items: center; justify-content: center; gap: 4px;">
+                            <input type="checkbox" 
+                                   ${isAbsent ? 'checked' : ''} 
+                                   data-student-id="${student.id}" 
+                                   data-column="${dateColumn}"
+                                   onchange="window.seatingPlan.toggleAbsence(this)"
+                                   title="Abwesend">
+                            <input type="text" class="grade-input ${gradeClass}" 
+                                   value="${isAbsent ? '' : grade}" 
+                                   data-student-id="${student.id}" 
+                                   data-column="${dateColumn}"
+                                   ${isAbsent ? 'disabled' : ''}
+                                   onchange="window.seatingPlan.updateGrade(this)"
+                                   onblur="window.seatingPlan.updateGrade(this)"
+                                   placeholder="${isAbsent ? 'Abwesend' : ''}">
+                        </div>
                     </td>
                 `;
             });
@@ -2420,7 +2486,42 @@ class SeatingPlan {
                 studentGrades.set(newName, grade);
             }
         });
+        
+        // Rename column in all student absence tables
+        this.absenceTable.forEach(studentAbsences => {
+            if (studentAbsences.has(oldName)) {
+                const absence = studentAbsences.get(oldName);
+                studentAbsences.delete(oldName);
+                studentAbsences.set(newName, absence);
+            }
+        });
 
+        this.saveCurrentClassState();
+        this.showExtendedGradeTable();
+    }
+
+    toggleAbsence(checkbox) {
+        const studentId = parseFloat(checkbox.dataset.studentId);
+        const column = checkbox.dataset.column;
+        const isAbsent = checkbox.checked;
+        
+        // Initialize absence table if not exists
+        if (!this.absenceTable.has(studentId)) {
+            this.absenceTable.set(studentId, new Map());
+        }
+        
+        const studentAbsences = this.absenceTable.get(studentId);
+        
+        if (isAbsent) {
+            studentAbsences.set(column, true);
+            // Clear grade when marked absent
+            if (this.gradeTable.has(studentId)) {
+                this.gradeTable.get(studentId).delete(column);
+            }
+        } else {
+            studentAbsences.delete(column);
+        }
+        
         this.saveCurrentClassState();
         this.showExtendedGradeTable();
     }
@@ -2434,6 +2535,11 @@ class SeatingPlan {
         this.gradeTable.forEach(studentGrades => {
             studentGrades.delete(columnName);
         });
+        
+        // Remove column from all student absence tables
+        this.absenceTable.forEach(studentAbsences => {
+            studentAbsences.delete(columnName);
+        });
 
         this.saveCurrentClassState();
         this.showExtendedGradeTable();
@@ -2444,6 +2550,13 @@ class SeatingPlan {
         const studentId = parseFloat(input.dataset.studentId);
         const column = input.dataset.column;
         const grade = input.value.trim();
+
+        // Check if student is marked absent for this date
+        const studentAbsences = this.absenceTable.get(studentId);
+        if (studentAbsences && studentAbsences.get(column)) {
+            input.value = ''; // Clear value if trying to enter grade for absent student
+            return;
+        }
 
         // Validate grade
         if (grade && (isNaN(parseFloat(grade)) || parseFloat(grade) < 1.0 || parseFloat(grade) > 6.0)) {
