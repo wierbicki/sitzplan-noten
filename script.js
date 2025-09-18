@@ -2331,10 +2331,21 @@ class SeatingPlan {
 
         this.students.forEach(student => {
             const studentGrades = this.gradeTable.get(student.id) || new Map();
+            const studentAttendance = this.attendanceTable.get(student.id) || new Map();
             
-            // Calculate average
-            const grades = Array.from(studentGrades.values()).map(g => parseFloat(g)).filter(g => !isNaN(g));
-            const average = grades.length > 0 ? (grades.reduce((sum, g) => sum + g, 0) / grades.length).toFixed(1) : '-';
+            // Calculate average - only include grades from days when student was present
+            const presentGrades = [];
+            studentGrades.forEach((grade, dateColumn) => {
+                const gradeValue = parseFloat(grade);
+                const isPresent = studentAttendance.get(dateColumn) !== false; // Default to present if not set
+                
+                // Only include grade if student was present and grade is valid
+                if (isPresent && !isNaN(gradeValue)) {
+                    presentGrades.push(gradeValue);
+                }
+            });
+            
+            const average = presentGrades.length > 0 ? (presentGrades.reduce((sum, g) => sum + g, 0) / presentGrades.length).toFixed(1) : '-';
 
             studentsWithGrades.push({
                 id: student.id,
