@@ -2726,20 +2726,11 @@ class SeatingPlan {
 
         const sortedDateColumns = Array.from(dateColumns).sort();
 
-        // Auto-mark unassigned students as absent for all dates
+        // Initialize absence table for students without entries (but don't auto-mark as absent)
         this.students.forEach(student => {
-            const isAssigned = this.isStudentAssignedToDesk(student.id);
-            
             if (!this.absenceTable.has(student.id)) {
                 this.absenceTable.set(student.id, new Map());
             }
-            const studentAbsences = this.absenceTable.get(student.id);
-            
-            sortedDateColumns.forEach(dateColumn => {
-                if (!isAssigned && !studentAbsences.has(dateColumn)) {
-                    studentAbsences.set(dateColumn, true); // Mark as absent
-                }
-            });
         });
 
         // Collect all students with their grades
