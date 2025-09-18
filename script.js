@@ -17,6 +17,7 @@ class SeatingPlan {
         this.showGrades = false; // Toggle for grade display
         this.startingGrade = 4.0; // Default starting grade
         this.gradeTable = new Map(); // Store grade table data: studentId -> Map(dateColumn -> grade)
+        this.attendanceTable = new Map(); // Store attendance data: studentId -> Map(dateColumn -> boolean)
         this.isDragging = false; // Track if drag operation is active
         this.dragStartPosition = null; // Track initial position for drag detection
         this.isEditingClass = false; // Track if we're editing a class
@@ -703,7 +704,8 @@ class SeatingPlan {
             gridColumns: 6,
             showGrades: false,
             startingGrade: 4.0,
-            gradeTable: new Map()
+            gradeTable: new Map(),
+            attendanceTable: new Map()
         };
 
         this.classes.set(defaultClass.id, defaultClass);
@@ -828,6 +830,16 @@ class SeatingPlan {
             });
         }
 
+        // Properly reconstruct nested Map structure for attendanceTable
+        this.attendanceTable = new Map();
+        if (classData.attendanceTable && Array.isArray(classData.attendanceTable)) {
+            classData.attendanceTable.forEach(([studentId, attendanceData]) => {
+                // Reconstruct inner Map from the saved array
+                const studentAttendanceMap = new Map(attendanceData || []);
+                this.attendanceTable.set(studentId, studentAttendanceMap);
+            });
+        }
+
         // Initialize nextDeskId based on existing desks to avoid ID conflicts
         if (this.desks.length > 0) {
             // First pass: collect valid numeric IDs and find maximum
@@ -902,6 +914,11 @@ class SeatingPlan {
         // Properly serialize nested Map structure for gradeTable
         classData.gradeTable = Array.from(this.gradeTable.entries()).map(([studentId, studentGradesMap]) => {
             return [studentId, Array.from(studentGradesMap.entries())];
+        });
+
+        // Properly serialize nested Map structure for attendanceTable
+        classData.attendanceTable = Array.from(this.attendanceTable.entries()).map(([studentId, studentAttendanceMap]) => {
+            return [studentId, Array.from(studentAttendanceMap.entries())];
         });
 
         this.classes.set(this.currentClassId, classData);
