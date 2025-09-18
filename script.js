@@ -1,5 +1,6 @@
 class SeatingPlan {
     constructor() {
+        this.version = "2.1.0"; // Application version - update this when making changes
         this.classes = new Map(); // Store all classes and their data
         this.currentClassId = null;
         this.students = [];
@@ -42,6 +43,14 @@ class SeatingPlan {
         this.bindEvents();
         this.loadClasses();
         this.updateClassSelect();
+        this.updateVersionDisplay();
+    }
+
+    updateVersionDisplay() {
+        const versionElement = document.getElementById('versionInfo');
+        if (versionElement) {
+            versionElement.textContent = `Version ${this.version}`;
+        }
     }
 
     createClassroom() {

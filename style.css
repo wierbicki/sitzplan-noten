@@ -45,6 +45,14 @@ body {
     font-size: 28px;
     font-weight: 600;
     color: #1d1d1f;
+    margin-bottom: 4px;
+}
+
+.version-info {
+    font-size: 14px;
+    color: #666;
+    font-weight: 400;
+    margin-top: -8px;
 }
 
 .class-controls {

@@ -1,10 +1,14 @@
 # Overview
 
-This is a German classroom seating plan management application called "Sitzplan - Klassenverwaltung" (Seating Plan - Class Management). It's a web-based tool that allows teachers to manage multiple classes, arrange students in a customizable grid layout, track student grades, and maintain various classroom metrics. The application features drag-and-drop functionality for seat arrangements, grade tracking with visual indicators, and persistent data storage using browser localStorage.
+This is a classroom seating plan management application called "SeatMap Grading". It's a web-based tool that allows teachers to manage multiple classes, arrange students in a customizable grid layout, track student grades, and maintain various classroom metrics. The application features drag-and-drop functionality for seat arrangements, grade tracking with visual indicators, and persistent data storage using browser localStorage.
 
 # Recent Changes
 
-**September 18, 2025**: Implemented comprehensive absence tracking system with automatic marking for unassigned students, centered grade table column headers, and enhanced data persistence including absence data in export/import functionality.
+**September 18, 2025**: 
+- Fixed automatic absence marking issue that overwrote manual settings
+- Changed application title from "Sitzplan" to "SeatMap Grading" 
+- Added dynamic version display (currently v2.1.0) that can be easily updated
+- Implemented comprehensive absence tracking system with automatic marking for unassigned students, centered grade table column headers, and enhanced data persistence including absence data in export/import functionality
 
 # User Preferences
 
