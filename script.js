@@ -1294,6 +1294,39 @@ class SeatingPlan {
         return groups;
     }
     
+    calculateStudentAverage(studentId) {
+        // If no periods exist, use old single-day calculation
+        if (this.periods.size === 0) {
+            const studentGrades = this.gradeTable.get(studentId) || new Map();
+            const studentAbsences = this.absenceTable.get(studentId) || new Map();
+            
+            const grades = Array.from(studentGrades.entries())
+                .filter(([dateColumn, grade]) => !studentAbsences.get(dateColumn)) // Exclude absent days
+                .map(([, grade]) => parseFloat(grade))
+                .filter(g => !isNaN(g));
+            return grades.length > 0 ? (grades.reduce((sum, g) => sum + g, 0) / grades.length).toFixed(1) : '-';
+        }
+        
+        // Calculate average based on period grades
+        const periodGrades = [];
+        
+        this.periods.forEach((period, periodId) => {
+            const periodGrade = this.calculatePeriodGrade(studentId, periodId);
+            if (periodGrade !== null && !isNaN(periodGrade)) {
+                periodGrades.push(periodGrade);
+            }
+        });
+        
+        // If student has no valid period grades, return '-' like old behavior
+        if (periodGrades.length === 0) {
+            return '-';
+        }
+        
+        // Calculate average of period grades
+        const average = periodGrades.reduce((sum, grade) => sum + grade, 0) / periodGrades.length;
+        return average.toFixed(1);
+    }
+    
     migrateExistingGradesToPeriods() {
         // Get all existing date columns from grade table
         const dateColumns = new Set();
@@ -2696,12 +2729,8 @@ class SeatingPlan {
             const studentGrades = this.gradeTable.get(student.id) || new Map();
             const studentAbsences = this.absenceTable.get(student.id) || new Map();
             
-            // Calculate average excluding absent days
-            const grades = Array.from(studentGrades.entries())
-                .filter(([dateColumn, grade]) => !studentAbsences.get(dateColumn)) // Exclude absent days
-                .map(([, grade]) => parseFloat(grade))
-                .filter(g => !isNaN(g));
-            const average = grades.length > 0 ? (grades.reduce((sum, g) => sum + g, 0) / grades.length).toFixed(1) : '-';
+            // Calculate average based on periods, not individual days
+            const average = this.calculateStudentAverage(student.id);
 
             studentsWithGrades.push({
                 id: student.id,
@@ -3130,11 +3159,9 @@ class SeatingPlan {
     updateStudentAverage(studentId) {
         // Ensure studentId is a number for consistent lookups
         const numericStudentId = typeof studentId === 'string' ? parseFloat(studentId) : studentId;
-        const studentGrades = this.gradeTable.get(numericStudentId);
-        if (!studentGrades) return;
-
-        const grades = Array.from(studentGrades.values()).map(g => parseFloat(g)).filter(g => !isNaN(g));
-        const average = grades.length > 0 ? (grades.reduce((sum, g) => sum + g, 0) / grades.length).toFixed(1) : '-';
+        
+        // Use the new period-based average calculation
+        const average = this.calculateStudentAverage(numericStudentId);
 
         // Find and update average cell in current table
         const row = document.querySelector(`input[data-student-id="${numericStudentId}"]`)?.closest('tr');
