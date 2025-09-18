@@ -41,6 +41,26 @@ body {
     gap: 15px;
 }
 
+.title-section {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.app-logo {
+    width: 48px;
+    height: 48px;
+    object-fit: contain;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.title-content {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
 .header h1 {
     font-size: 28px;
     font-weight: 600;
