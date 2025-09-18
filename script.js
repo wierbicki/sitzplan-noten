@@ -2065,7 +2065,8 @@ class SeatingPlan {
                     gridColumns: classData.gridColumns || 6,
                     showGrades: classData.showGrades || false,
                     startingGrade: classData.startingGrade || 4.0,
-                    gradeTable: classData.gradeTable || []
+                    gradeTable: classData.gradeTable || [],
+                    attendanceTable: classData.attendanceTable || []
                 };
                 exportData.classes.push(exportClass);
             });
@@ -2139,7 +2140,8 @@ class SeatingPlan {
                         gridColumns: classData.gridColumns || 6,
                         showGrades: classData.showGrades || false,
                         startingGrade: classData.startingGrade || 4.0,
-                        gradeTable: classData.gradeTable || []
+                        gradeTable: classData.gradeTable || [],
+                        attendanceTable: classData.attendanceTable || []
                     };
                     this.classes.set(classData.id, importedClass);
                 });
