@@ -999,6 +999,69 @@ body {
     accent-color: #ff8c00;
 }
 
+/* Lateness Modal Styles */
+.lateness-options {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+    margin: 20px 0;
+}
+
+.lateness-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    border: 2px solid transparent;
+    border-radius: 12px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 14px;
+    color: #333;
+    transition: all 0.3s ease;
+    min-height: 80px;
+}
+
+.lateness-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    border-color: rgba(255, 255, 255, 0.8);
+}
+
+.lateness-time {
+    font-size: 16px;
+    margin-bottom: 5px;
+}
+
+.lateness-icon {
+    font-size: 20px;
+}
+
+.remove-btn {
+    color: #666 !important;
+}
+
+.remove-btn .lateness-icon {
+    font-size: 18px;
+}
+
+/* Student card lateness indicators */
+.student-card.lateness-5 {
+    background: linear-gradient(135deg, #fff9e6, #ffd60a);
+    border: 2px solid #ffcc00;
+}
+
+.student-card.lateness-10 {
+    background: linear-gradient(135deg, #fff3cd, #ff9f0a);
+    border: 2px solid #ff8c00;
+}
+
+.student-card.lateness-15 {
+    background: linear-gradient(135deg, #ffe8d1, #ff6b35);
+    border: 2px solid #ff4500;
+}
+
 .floating-header-toggle {
     position: fixed;
     top: 20px;

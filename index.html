@@ -100,6 +100,34 @@
         </div>
     </div>
 
+    <!-- Modal for lateness selection -->
+    <div class="modal" id="latenessModal">
+        <div class="modal-content">
+            <h3>Verspätung erfassen</h3>
+            <div class="lateness-options">
+                <button class="lateness-btn" data-lateness="5" style="background: linear-gradient(135deg, #fff9e6, #ffd60a);">
+                    <span class="lateness-time">5 Minuten</span>
+                    <span class="lateness-icon">🕐</span>
+                </button>
+                <button class="lateness-btn" data-lateness="10" style="background: linear-gradient(135deg, #fff3cd, #ff9f0a);">
+                    <span class="lateness-time">10 Minuten</span>
+                    <span class="lateness-icon">🕐</span>
+                </button>
+                <button class="lateness-btn" data-lateness="15" style="background: linear-gradient(135deg, #ffe8d1, #ff6b35);">
+                    <span class="lateness-time">Über 10 Minuten</span>
+                    <span class="lateness-icon">🕐</span>
+                </button>
+                <button class="lateness-btn remove-btn" data-lateness="0" style="background: linear-gradient(135deg, #f5f5f7, #8e8e93);">
+                    <span class="lateness-time">Entfernen</span>
+                    <span class="lateness-icon">✕</span>
+                </button>
+            </div>
+            <div class="modal-actions">
+                <button type="button" class="btn-secondary" id="cancelLatenessModal">Abbrechen</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Modal for adding students -->
     <div class="modal" id="studentModal">
         <div class="modal-content">

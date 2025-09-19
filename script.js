@@ -19,7 +19,7 @@ class SeatingPlan {
         this.startingGrade = 4.0; // Default starting grade
         this.gradeTable = new Map(); // Store grade table data: studentId -> Map(dateColumn -> grade)
         this.absenceTable = new Map(); // Store absence data: studentId -> Map(dateColumn -> boolean)
-        this.latenessTable = new Map(); // Store lateness data: studentId -> Map(dateColumn -> boolean)
+        this.latenessTable = new Map(); // Store lateness data: studentId -> Map(dateColumn -> number) (0=none, 5=5min, 10=10min, 15=over10min)
         this.hiddenGrades = new Map(); // Store temporarily hidden grades due to absence: studentId -> Map(dateColumn -> grade)
         this.periods = new Map(); // Store grading periods: periodId -> {name, columns, active}
         this.activePeriodId = null; // ID of currently active period
@@ -703,6 +703,79 @@ class SeatingPlan {
 
         // Set up event delegation for checkbox events (absence and lateness)
         this.setupCheckboxEventDelegation();
+
+        // Set up lateness modal events
+        this.setupLatenessModalEvents();
+    }
+
+    setupLatenessModalEvents() {
+        // Close modal on background click
+        document.getElementById('latenessModal').addEventListener('click', (e) => {
+            if (e.target === e.currentTarget) {
+                document.getElementById('latenessModal').style.display = 'none';
+            }
+        });
+
+        // Close modal on cancel button
+        document.getElementById('cancelLatenessModal').addEventListener('click', () => {
+            document.getElementById('latenessModal').style.display = 'none';
+        });
+
+        // Handle lateness selection buttons
+        document.querySelectorAll('.lateness-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const studentId = parseInt(document.getElementById('latenessModal').dataset.studentId);
+                const latenessLevel = parseInt(e.currentTarget.dataset.lateness);
+                this.setStudentLateness(studentId, latenessLevel);
+                document.getElementById('latenessModal').style.display = 'none';
+            });
+        });
+    }
+
+    showLatenessModal(studentId) {
+        document.getElementById('latenessModal').dataset.studentId = studentId;
+        document.getElementById('latenessModal').style.display = 'block';
+    }
+
+    setStudentLateness(studentId, latenessLevel) {
+        // Get current date for today's lateness
+        const today = new Date().toLocaleDateString('de-DE');
+        
+        // Initialize lateness table if not exists
+        if (!this.latenessTable.has(studentId)) {
+            this.latenessTable.set(studentId, new Map());
+        }
+        
+        const studentLateness = this.latenessTable.get(studentId);
+        
+        // Update or remove today's lateness level
+        if (latenessLevel === 0) {
+            studentLateness.delete(today);
+        } else {
+            studentLateness.set(today, latenessLevel);
+        }
+        
+        // Save state and update UI
+        this.saveCurrentClassState();
+        this.renderDesks(); // Re-render to show visual changes
+        this.renderStudentPool(); // Update student pool as well
+    }
+
+    getCurrentLatenessLevel(studentId) {
+        // Get the most recent lateness level for visual display
+        const studentLateness = this.latenessTable.get(studentId);
+        if (!studentLateness || studentLateness.size === 0) {
+            return 0;
+        }
+        
+        // Get all dates and find the most recent one with a lateness level
+        const sortedEntries = Array.from(studentLateness.entries()).sort((a, b) => {
+            const dateA = new Date(a[0].split('.').reverse().join('-'));
+            const dateB = new Date(b[0].split('.').reverse().join('-'));
+            return dateB - dateA;
+        });
+        
+        return sortedEntries.length > 0 ? sortedEntries[0][1] : 0;
     }
 
     loadClasses() {
@@ -950,6 +1023,7 @@ class SeatingPlan {
                 this.latenessTable.set(studentId, studentLatenessMap);
             });
         }
+
         
         // Properly reconstruct nested Map structure for hiddenGrades
         this.hiddenGrades = new Map();
@@ -1066,6 +1140,7 @@ class SeatingPlan {
         classData.latenessTable = Array.from(this.latenessTable.entries()).map(([studentId, studentLatenessMap]) => {
             return [studentId, Array.from(studentLatenessMap.entries())];
         });
+
         
         // Properly serialize nested Map structure for hiddenGrades
         classData.hiddenGrades = Array.from(this.hiddenGrades.entries()).map(([studentId, studentHiddenMap]) => {
@@ -1655,6 +1730,13 @@ class SeatingPlan {
     createStudentCard(student) {
         const card = document.createElement('div');
         card.className = 'student-card';
+        
+        // Add lateness visual indicator
+        const latenessLevel = this.getCurrentLatenessLevel(student.id);
+        if (latenessLevel) {
+            card.className += ` lateness-${latenessLevel}`;
+        }
+        
         card.draggable = true;
         card.dataset.studentId = student.id;
 
@@ -1724,6 +1806,20 @@ class SeatingPlan {
         });
 
         actions.appendChild(editBtn);
+
+        // Add lateness button for seated students
+        if (isSeated) {
+            const latenessBtn = document.createElement('button');
+            latenessBtn.className = 'btn-edit';
+            latenessBtn.innerHTML = '🕐';
+            latenessBtn.title = 'Verspätet';
+            latenessBtn.style.background = '#ff9500';
+            latenessBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.showLatenessModal(student.id);
+            });
+            actions.appendChild(latenessBtn);
+        }
 
         // Add move to pool button for seated students
         if (isSeated) {
@@ -2989,7 +3085,8 @@ class SeatingPlan {
                 group.columns.forEach(dateColumn => {
                     const grade = student.grades.get(dateColumn) || '';
                     const isAbsent = student.absences.get(dateColumn) || false;
-                    const isLate = student.lateness.get(dateColumn) || false;
+                    const latenessLevel = student.lateness.get(dateColumn) || 0;
+                    const isLate = latenessLevel > 0;
                     const gradeValue = parseFloat(grade);
                     let gradeClass = '';
                     
@@ -3131,7 +3228,8 @@ class SeatingPlan {
         const studentLateness = this.latenessTable.get(studentId);
         
         if (isLate) {
-            studentLateness.set(column, true);
+            // Default to 5 minutes for checkbox-based lateness
+            studentLateness.set(column, 5);
         } else {
             studentLateness.delete(column);
         }
@@ -3664,15 +3762,19 @@ class SeatingPlan {
             periodGroups.forEach(group => {
                 group.columns.forEach(dateColumn => {
                     const isAbsent = student.absences.get(dateColumn) || false;
-                    const isLate = student.lateness.get(dateColumn) || false;
+                    const latenessLevel = student.lateness.get(dateColumn) || 0;
+                    const isLate = latenessLevel > 0;
                     let grade = student.grades.get(dateColumn) || '-';
                     
                     if (isAbsent) {
                         grade = 'Abw';
                     } else if (isLate && grade !== '-') {
-                        grade = grade + ' (V)'; // V for "Verspätung"
+                        // Add lateness marker with level
+                        const latenessMarker = latenessLevel === 5 ? 'V5' : latenessLevel === 10 ? 'V10' : 'V15+';
+                        grade = grade + ` (${latenessMarker})`;
                     } else if (isLate && grade === '-') {
-                        grade = 'V';
+                        const latenessMarker = latenessLevel === 5 ? 'V5' : latenessLevel === 10 ? 'V10' : 'V15+';
+                        grade = latenessMarker;
                     }
                     doc.text(grade.toString(), dataX, yPosition);
                     dataX += columnWidth;
@@ -3794,14 +3896,16 @@ class SeatingPlan {
             periodGroups.forEach(group => {
                 group.columns.forEach(dateColumn => {
                     const isAbsent = student.absences.get(dateColumn) || false;
-                    const isLate = student.lateness.get(dateColumn) || false;
+                    const latenessLevel = student.lateness.get(dateColumn) || 0;
+                    const isLate = latenessLevel > 0;
                     let grade = '';
                     
                     if (isAbsent) {
                         grade = 'Abw';
                     } else if (isLate) {
                         const baseGrade = student.grades.get(dateColumn) || '';
-                        grade = baseGrade ? baseGrade + ' (V)' : 'V';
+                        const latenessMarker = latenessLevel === 5 ? 'V5' : latenessLevel === 10 ? 'V10' : 'V15+';
+                        grade = baseGrade ? `${baseGrade.toString().replace('.', ',')} (${latenessMarker})` : latenessMarker;
                     } else {
                         grade = student.grades.get(dateColumn) || '';
                         // Convert grade from dot to comma for German locale
