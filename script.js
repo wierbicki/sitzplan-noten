@@ -2977,6 +2977,12 @@ class SeatingPlan {
             return;
         }
 
+        // Prevent multiple simultaneous executions
+        if (this._renderingTable) {
+            return;
+        }
+        this._renderingTable = true;
+
         // Get all date columns
         const dateColumns = new Set();
         this.gradeTable.forEach(studentGrades => {
@@ -3195,6 +3201,9 @@ class SeatingPlan {
         this.setupCheckboxEventDelegation();
         
         document.getElementById('gradeTableModal').style.display = 'block';
+        
+        // Reset rendering flag
+        this._renderingTable = false;
     }
 
     editColumnName(oldName) {
