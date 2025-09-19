@@ -733,7 +733,6 @@ class SeatingPlan {
             btn.addEventListener('click', (e) => {
                 const studentId = parseFloat(document.getElementById('latenessModal').dataset.studentId);
                 const latenessLevel = parseInt(e.currentTarget.dataset.lateness);
-                console.log(`[DEBUG] Lateness button clicked - StudentID: ${studentId}, Lateness: ${latenessLevel}`);
                 this.setStudentLateness(studentId, latenessLevel);
                 document.getElementById('latenessModal').style.display = 'none';
             });
@@ -749,8 +748,6 @@ class SeatingPlan {
         // Get current date for today's lateness
         const today = new Date().toLocaleDateString('de-DE');
         
-        console.log(`[DEBUG] setStudentLateness - StudentID: ${studentId}, Lateness: ${latenessLevel}, Today: ${today}`);
-        
         // Initialize lateness table if not exists
         if (!this.latenessTable.has(studentId)) {
             this.latenessTable.set(studentId, new Map());
@@ -761,14 +758,9 @@ class SeatingPlan {
         // Update or remove today's lateness level
         if (latenessLevel === 0) {
             studentLateness.delete(today);
-            console.log(`[DEBUG] Removed lateness for student ${studentId} on ${today}`);
         } else {
             studentLateness.set(today, latenessLevel);
-            console.log(`[DEBUG] Set lateness for student ${studentId} on ${today}: ${latenessLevel} minutes`);
         }
-        
-        // Verify the data was saved
-        console.log(`[DEBUG] Current lateness table for student ${studentId}:`, Array.from(studentLateness.entries()));
         
         // Save state first, then update UI
         this.saveCurrentClassState();
@@ -839,18 +831,14 @@ class SeatingPlan {
         // Get today's lateness level for visual display on student cards
         const studentLateness = this.latenessTable.get(studentId);
         if (!studentLateness || studentLateness.size === 0) {
-            console.log(`[DEBUG] getCurrentLatenessLevel - No lateness data for student ${studentId}`);
             return 0;
         }
         
         // First try to get today's lateness
         const today = new Date().toLocaleDateString('de-DE');
-        console.log(`[DEBUG] getCurrentLatenessLevel - Student ${studentId}, Today: ${today}`);
-        console.log(`[DEBUG] Available lateness entries:`, Array.from(studentLateness.entries()));
         
         if (studentLateness.has(today)) {
             const latenessLevel = studentLateness.get(today);
-            console.log(`[DEBUG] Found today's lateness for student ${studentId}: ${latenessLevel} minutes`);
             return latenessLevel;
         }
         
@@ -861,9 +849,7 @@ class SeatingPlan {
             return dateB - dateA;
         });
         
-        const recentLatenessLevel = sortedEntries.length > 0 ? sortedEntries[0][1] : 0;
-        console.log(`[DEBUG] No today's lateness, using most recent for student ${studentId}: ${recentLatenessLevel} minutes`);
-        return recentLatenessLevel;
+        return sortedEntries.length > 0 ? sortedEntries[0][1] : 0;
     }
 
     countStudentLateness(studentId) {
@@ -1876,21 +1862,16 @@ class SeatingPlan {
         
         // Add lateness visual indicator
         const latenessLevel = this.getCurrentLatenessLevel(student.id);
-        console.log(`[DEBUG] createStudentCard - Student ${student.id} (${student.firstName} ${student.lastName}), latenessLevel: ${latenessLevel}`);
         
         if (latenessLevel > 0) {
             // Apply lateness background color class
             card.className += ` lateness-${latenessLevel}`;
-            console.log(`[DEBUG] Applied CSS class: lateness-${latenessLevel} to student ${student.id}`);
             
             // Add minutes indicator text
             const latenessIndicator = document.createElement('div');
             latenessIndicator.className = 'student-lateness-indicator';
             latenessIndicator.textContent = `${latenessLevel}min`;
             card.appendChild(latenessIndicator);
-            console.log(`[DEBUG] Added lateness indicator: ${latenessLevel}min for student ${student.id}`);
-        } else {
-            console.log(`[DEBUG] No lateness indicator needed for student ${student.id}`);
         }
         
         card.draggable = true;
@@ -2809,7 +2790,11 @@ class SeatingPlan {
                     startingGrade: classData.startingGrade || 4.0,
                     gradeTable: classData.gradeTable || [],
                     absenceTable: classData.absenceTable || [],
-                    hiddenGrades: classData.hiddenGrades || []
+                    latenessTable: classData.latenessTable || [],
+                    hiddenGrades: classData.hiddenGrades || [],
+                    periods: classData.periods || [],
+                    activePeriodId: classData.activePeriodId || null,
+                    defaultPeriodLength: classData.defaultPeriodLength || 1
                 };
                 exportData.classes.push(exportClass);
             });
@@ -2876,7 +2861,6 @@ class SeatingPlan {
                         name: classData.name,
                         students: classData.students || [],
                         studentCounters: new Map(classData.studentCounters || []),
-                        seatAssignments: new Map(classData.seatAssignments || []),
                         desks: classData.desks || [],
                         deskAssignments: new Map(classData.deskAssignments || []),
                         gridRows: classData.gridRows || 5,
@@ -2885,7 +2869,11 @@ class SeatingPlan {
                         startingGrade: classData.startingGrade || 4.0,
                         gradeTable: classData.gradeTable || [],
                         absenceTable: classData.absenceTable || [],
-                        hiddenGrades: classData.hiddenGrades || []
+                        latenessTable: classData.latenessTable || [],
+                        hiddenGrades: classData.hiddenGrades || [],
+                        periods: classData.periods || [],
+                        activePeriodId: classData.activePeriodId || null,
+                        defaultPeriodLength: classData.defaultPeriodLength || 1
                     };
                     this.classes.set(classData.id, importedClass);
                 });
