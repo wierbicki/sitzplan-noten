@@ -19,6 +19,7 @@ class SeatingPlan {
         this.startingGrade = 4.0; // Default starting grade
         this.gradeTable = new Map(); // Store grade table data: studentId -> Map(dateColumn -> grade)
         this.absenceTable = new Map(); // Store absence data: studentId -> Map(dateColumn -> boolean)
+        this.latenessTable = new Map(); // Store lateness data: studentId -> Map(dateColumn -> boolean)
         this.hiddenGrades = new Map(); // Store temporarily hidden grades due to absence: studentId -> Map(dateColumn -> grade)
         this.periods = new Map(); // Store grading periods: periodId -> {name, columns, active}
         this.activePeriodId = null; // ID of currently active period
@@ -699,6 +700,9 @@ class SeatingPlan {
                 document.getElementById('gradeTableModal').style.display = 'none';
             }
         });
+
+        // Set up event delegation for checkbox events (absence and lateness)
+        this.setupCheckboxEventDelegation();
     }
 
     loadClasses() {
@@ -790,6 +794,7 @@ class SeatingPlan {
             defaultPeriodLength: 1,
             gradeTable: new Map(),
             absenceTable: new Map(),
+            latenessTable: new Map(),
             hiddenGrades: new Map(),
             periods: new Map(),
             activePeriodId: null
@@ -819,6 +824,10 @@ class SeatingPlan {
             showGrades: false,
             startingGrade: 4.0,
             defaultPeriodLength: periodLength || 1,
+            gradeTable: new Map(),
+            absenceTable: new Map(),
+            latenessTable: new Map(),
+            hiddenGrades: new Map(),
             periods: new Map(),
             activePeriodId: null
         };
@@ -936,6 +945,16 @@ class SeatingPlan {
                 this.absenceTable.set(studentId, studentAbsenceMap);
             });
         }
+
+        // Properly reconstruct nested Map structure for latenessTable
+        this.latenessTable = new Map();
+        if (classData.latenessTable && Array.isArray(classData.latenessTable)) {
+            classData.latenessTable.forEach(([studentId, latenessData]) => {
+                // Reconstruct inner Map from the saved array
+                const studentLatenessMap = new Map(latenessData || []);
+                this.latenessTable.set(studentId, studentLatenessMap);
+            });
+        }
         
         // Properly reconstruct nested Map structure for hiddenGrades
         this.hiddenGrades = new Map();
@@ -1046,6 +1065,11 @@ class SeatingPlan {
         // Properly serialize nested Map structure for absenceTable
         classData.absenceTable = Array.from(this.absenceTable.entries()).map(([studentId, studentAbsenceMap]) => {
             return [studentId, Array.from(studentAbsenceMap.entries())];
+        });
+
+        // Properly serialize nested Map structure for latenessTable
+        classData.latenessTable = Array.from(this.latenessTable.entries()).map(([studentId, studentLatenessMap]) => {
+            return [studentId, Array.from(studentLatenessMap.entries())];
         });
         
         // Properly serialize nested Map structure for hiddenGrades
@@ -2817,23 +2841,25 @@ class SeatingPlan {
         return this.desks.some(desk => desk.students.some(s => s.id == studentId));
     }
 
-    setupAbsenceEventDelegation() {
+    setupCheckboxEventDelegation() {
         // Remove any existing event listeners to prevent duplicates
         const container = document.getElementById('gradeTableContainer');
-        const existingHandler = container._absenceHandler;
+        const existingHandler = container._checkboxHandler;
         if (existingHandler) {
             container.removeEventListener('change', existingHandler);
         }
         
-        // Create new event handler
+        // Create new event handler for both absence and lateness checkboxes
         const handler = (e) => {
             if (e.target.classList.contains('absence-checkbox')) {
                 this.toggleAbsence(e.target);
+            } else if (e.target.classList.contains('lateness-checkbox')) {
+                this.toggleLateness(e.target);
             }
         };
         
         // Store reference for cleanup and add listener
-        container._absenceHandler = handler;
+        container._checkboxHandler = handler;
         container.addEventListener('change', handler);
     }
 
@@ -2857,6 +2883,10 @@ class SeatingPlan {
             if (!this.absenceTable.has(student.id)) {
                 this.absenceTable.set(student.id, new Map());
             }
+            // Initialize lateness table for students without entries
+            if (!this.latenessTable.has(student.id)) {
+                this.latenessTable.set(student.id, new Map());
+            }
         });
 
         // Collect all students with their grades
@@ -2865,6 +2895,7 @@ class SeatingPlan {
         this.students.forEach(student => {
             const studentGrades = this.gradeTable.get(student.id) || new Map();
             const studentAbsences = this.absenceTable.get(student.id) || new Map();
+            const studentLateness = this.latenessTable.get(student.id) || new Map();
             
             // Calculate average based on periods, not individual days
             const average = this.calculateStudentAverage(student.id);
@@ -2875,6 +2906,7 @@ class SeatingPlan {
                 firstName: student.firstName,
                 grades: studentGrades,
                 absences: studentAbsences,
+                lateness: studentLateness,
                 average: average
             });
         });
@@ -2962,6 +2994,7 @@ class SeatingPlan {
                 group.columns.forEach(dateColumn => {
                     const grade = student.grades.get(dateColumn) || '';
                     const isAbsent = student.absences.get(dateColumn) || false;
+                    const isLate = student.lateness.get(dateColumn) || false;
                     const gradeValue = parseFloat(grade);
                     let gradeClass = '';
                     
@@ -2976,14 +3009,22 @@ class SeatingPlan {
 
                     tableHTML += `
                         <td>
-                            <div style="display: flex; align-items: center; justify-content: center; gap: 4px;">
+                            <div style="display: flex; align-items: center; justify-content: center; gap: 2px;">
                                 <input type="checkbox" 
                                        class="absence-checkbox"
                                        ${isAbsent ? 'checked' : ''} 
                                        data-student-id="${student.id}" 
                                        data-column="${dateColumn}"
-                                       title="Abw">
-                                <input type="text" class="grade-input ${gradeClass}${isAbsent ? ' absent' : ''}" 
+                                       title="Abwesend">
+                                <input type="checkbox" 
+                                       class="lateness-checkbox"
+                                       ${isLate ? 'checked' : ''} 
+                                       data-student-id="${student.id}" 
+                                       data-column="${dateColumn}"
+                                       title="Zu spät"
+                                       style="transform: scale(0.8);">
+                                <span style="font-size: 10px; margin-right: 2px;" title="Zu spät">🕐</span>
+                                <input type="text" class="grade-input ${gradeClass}${isAbsent ? ' absent' : ''}${isLate ? ' late' : ''}" 
                                        value="${isAbsent ? '' : (grade ? grade.toString().replace('.', ',') : '')}" 
                                        data-student-id="${student.id}" 
                                        data-column="${dateColumn}"
@@ -3031,8 +3072,8 @@ class SeatingPlan {
         // Insert table into modal and show
         document.getElementById('gradeTableContainer').innerHTML = tableHTML;
         
-        // Setup event delegation for absence checkboxes
-        this.setupAbsenceEventDelegation();
+        // Setup event delegation for absence and lateness checkboxes
+        this.setupCheckboxEventDelegation();
         
         document.getElementById('gradeTableModal').style.display = 'block';
     }
@@ -3078,6 +3119,28 @@ class SeatingPlan {
             }
         });
 
+        this.saveCurrentClassState();
+        this.showExtendedGradeTable();
+    }
+
+    toggleLateness(checkbox) {
+        const studentId = parseFloat(checkbox.dataset.studentId);
+        const column = checkbox.dataset.column;
+        const isLate = checkbox.checked;
+        
+        // Initialize lateness table if not exists
+        if (!this.latenessTable.has(studentId)) {
+            this.latenessTable.set(studentId, new Map());
+        }
+        
+        const studentLateness = this.latenessTable.get(studentId);
+        
+        if (isLate) {
+            studentLateness.set(column, true);
+        } else {
+            studentLateness.delete(column);
+        }
+        
         this.saveCurrentClassState();
         this.showExtendedGradeTable();
     }
@@ -3530,6 +3593,7 @@ class SeatingPlan {
         this.students.forEach(student => {
             const studentGrades = this.gradeTable.get(student.id) || new Map();
             const studentAbsences = this.absenceTable.get(student.id) || new Map();
+            const studentLateness = this.latenessTable.get(student.id) || new Map();
             const average = this.calculateStudentAverage(student.id);
 
             studentsWithGrades.push({
@@ -3538,6 +3602,7 @@ class SeatingPlan {
                 firstName: student.firstName,
                 grades: studentGrades,
                 absences: studentAbsences,
+                lateness: studentLateness,
                 average: average
             });
         });
@@ -3604,7 +3669,16 @@ class SeatingPlan {
             periodGroups.forEach(group => {
                 group.columns.forEach(dateColumn => {
                     const isAbsent = student.absences.get(dateColumn) || false;
-                    const grade = isAbsent ? 'Abw' : (student.grades.get(dateColumn) || '-');
+                    const isLate = student.lateness.get(dateColumn) || false;
+                    let grade = student.grades.get(dateColumn) || '-';
+                    
+                    if (isAbsent) {
+                        grade = 'Abw';
+                    } else if (isLate && grade !== '-') {
+                        grade = grade + ' (V)'; // V for "Verspätung"
+                    } else if (isLate && grade === '-') {
+                        grade = 'V';
+                    }
                     doc.text(grade.toString(), dataX, yPosition);
                     dataX += columnWidth;
                 });
@@ -3658,6 +3732,7 @@ class SeatingPlan {
         this.students.forEach(student => {
             const studentGrades = this.gradeTable.get(student.id) || new Map();
             const studentAbsences = this.absenceTable.get(student.id) || new Map();
+            const studentLateness = this.latenessTable.get(student.id) || new Map();
             const average = this.calculateStudentAverage(student.id);
 
             studentsWithGrades.push({
@@ -3666,6 +3741,7 @@ class SeatingPlan {
                 firstName: student.firstName,
                 grades: studentGrades,
                 absences: studentAbsences,
+                lateness: studentLateness,
                 average: average
             });
         });
@@ -3723,9 +3799,14 @@ class SeatingPlan {
             periodGroups.forEach(group => {
                 group.columns.forEach(dateColumn => {
                     const isAbsent = student.absences.get(dateColumn) || false;
+                    const isLate = student.lateness.get(dateColumn) || false;
                     let grade = '';
+                    
                     if (isAbsent) {
                         grade = 'Abw';
+                    } else if (isLate) {
+                        const baseGrade = student.grades.get(dateColumn) || '';
+                        grade = baseGrade ? baseGrade + ' (V)' : 'V';
                     } else {
                         grade = student.grades.get(dateColumn) || '';
                         // Convert grade from dot to comma for German locale

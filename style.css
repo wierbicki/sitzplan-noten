@@ -972,15 +972,31 @@ body {
     cursor: not-allowed;
 }
 
+.grade-input.late {
+    background: #fff9e6 !important;
+    border: 1px solid #ffa500 !important;
+}
+
 /* Red styling for absence checkbox */
-.extended-grade-table input[type="checkbox"][title="Abw"] {
+.extended-grade-table input[type="checkbox"][title="Abwesend"] {
     accent-color: #ff453a;
     width: 16px;
     height: 16px;
 }
 
-.extended-grade-table input[type="checkbox"][title="Abw"]:checked {
+.extended-grade-table input[type="checkbox"][title="Abwesend"]:checked {
     accent-color: #d70015;
+}
+
+/* Orange styling for lateness checkbox */
+.extended-grade-table input[type="checkbox"][title="Zu spät"] {
+    accent-color: #ffa500;
+    width: 12px;
+    height: 12px;
+}
+
+.extended-grade-table input[type="checkbox"][title="Zu spät"]:checked {
+    accent-color: #ff8c00;
 }
 
 .floating-header-toggle {
