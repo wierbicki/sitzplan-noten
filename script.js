@@ -3339,7 +3339,7 @@ class SeatingPlan {
                 <tr>
                     <td>${student.lastName}</td>
                     <td>${student.firstName}</td>
-                    <td><strong>${student.average}</strong></td>
+                    <td class="grade-cell ${this.getAverageGradeClass(student.average)}"><strong>${student.average}</strong></td>
                     <td><strong>${student.latenessCount}</strong></td>
                     <td><strong>${student.absenceCount}</strong></td>
             `;
@@ -4346,6 +4346,31 @@ class SeatingPlan {
         // Generate filename and download
         const fileName = `Notentabelle_${className.replace(/[^a-zA-Z0-9]/g, '_')}_${new Date().toISOString().split('T')[0]}.xlsx`;
         XLSX.writeFile(wb, fileName);
+    }
+
+    getAverageGradeClass(average) {
+        if (average === '-' || average === null || average === undefined) {
+            return '';
+        }
+        
+        const gradeValue = parseFloat(average);
+        if (isNaN(gradeValue)) {
+            return '';
+        }
+        
+        if (gradeValue >= 1.0 && gradeValue <= 1.5) {
+            return 'grade-1';
+        } else if (gradeValue > 1.5 && gradeValue <= 2.5) {
+            return 'grade-2';
+        } else if (gradeValue > 2.5 && gradeValue <= 3.5) {
+            return 'grade-3';
+        } else if (gradeValue > 3.5 && gradeValue <= 4.5) {
+            return 'grade-4';
+        } else if (gradeValue > 4.5 && gradeValue <= 5.5) {
+            return 'grade-5';
+        } else {
+            return 'grade-6';
+        }
     }
 
 }
