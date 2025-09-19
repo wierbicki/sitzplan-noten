@@ -973,8 +973,8 @@ body {
 }
 
 .grade-input.late {
-    background: #fff9e6 !important;
-    border: 1px solid #ffa500 !important;
+    border: 3px solid #ff9500 !important;
+    box-shadow: 0 0 0 1px #ff9500;
 }
 
 /* Red styling for absence checkbox */
@@ -991,8 +991,8 @@ body {
 /* Orange styling for lateness checkbox */
 .extended-grade-table input[type="checkbox"][title="Zu spät"] {
     accent-color: #ffa500;
-    width: 12px;
-    height: 12px;
+    width: 16px;
+    height: 16px;
 }
 
 .extended-grade-table input[type="checkbox"][title="Zu spät"]:checked {
