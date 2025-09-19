@@ -29,6 +29,8 @@ body {
     gap: 15px;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
     border: 1px solid rgba(255, 255, 255, 0.2);
+    z-index: 1000;
+    position: relative;
 }
 
 .header-top {
@@ -173,7 +175,7 @@ body {
     max-width: 500px;
     box-shadow: 0 12px 32px rgba(0, 0, 0, 0.15);
     border: 1px solid rgba(255, 255, 255, 0.2);
-    z-index: 2147483648;
+    z-index: 99999;
     padding: 20px;
 }
 
@@ -561,53 +563,31 @@ body {
 
 .student-card-actions {
     position: absolute;
-    top: -40px;
-    right: 50%;
-    transform: translateX(50%);
+    top: -8px;
+    right: 4px;
     display: none;
-    gap: 6px;
-    z-index: 999999;
+    gap: 4px;
+    z-index: 9999;
     pointer-events: auto;
     padding: 8px;
-    border-radius: 12px;
-    background: rgba(255, 255, 255, 0.95);
-    backdrop-filter: blur(10px);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
-    border: 1px solid rgba(255, 255, 255, 0.3);
-    white-space: nowrap;
+    margin: -8px;
 }
 
 .seat .student-card-actions,
 .desk .student-card-actions {
-    top: -45px;
-    padding: 8px;
-    border-radius: 12px;
+    top: -32px;
+    padding: 4px;
+    margin: -4px;
+    z-index: 9999;
+    border-radius: 6px;
     background: rgba(255, 255, 255, 0.95);
-    backdrop-filter: blur(10px);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
-    border: 1px solid rgba(255, 255, 255, 0.3);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
 
-/* Top-layer portal for escaping stacking contexts */
-#ui-top-layer {
-    position: fixed;
-    inset: 0;
-    z-index: 2147483647;
-    pointer-events: none;
-}
-
-.popup-portal {
-    position: absolute;
-    pointer-events: auto;
-    display: flex;
-    gap: 6px;
-    padding: 8px;
-    border-radius: 12px;
-    background: rgba(255, 255, 255, 0.95);
-    backdrop-filter: blur(10px);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
-    border: 1px solid rgba(255, 255, 255, 0.3);
-    white-space: nowrap;
+.student-card:hover .student-card-actions,
+.student-card-actions:hover,
+.student-card .student-card-actions:hover {
+    display: flex !important;
 }
 
 .btn-edit {
