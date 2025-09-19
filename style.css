@@ -973,15 +973,20 @@ body {
 }
 
 .grade-input.late {
-    background: #fff9e6 !important;
-    border: 1px solid #ffa500 !important;
+    border: 3px solid #ff8c00 !important;
+    box-shadow: 0 0 0 1px #ff8c00 !important;
+}
+
+/* Unified checkbox styling with icons */
+.extended-grade-table input[type="checkbox"] {
+    width: 14px;
+    height: 14px;
+    margin: 0 2px;
 }
 
 /* Red styling for absence checkbox */
 .extended-grade-table input[type="checkbox"][title="Abwesend"] {
     accent-color: #ff453a;
-    width: 16px;
-    height: 16px;
 }
 
 .extended-grade-table input[type="checkbox"][title="Abwesend"]:checked {
@@ -991,12 +996,19 @@ body {
 /* Orange styling for lateness checkbox */
 .extended-grade-table input[type="checkbox"][title="Zu spät"] {
     accent-color: #ffa500;
-    width: 12px;
-    height: 12px;
 }
 
 .extended-grade-table input[type="checkbox"][title="Zu spät"]:checked {
     accent-color: #ff8c00;
+}
+
+/* Checkbox labels with icons */
+.checkbox-label {
+    font-size: 12px;
+    margin: 0 2px;
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
 }
 
 /* Lateness Modal Styles */
