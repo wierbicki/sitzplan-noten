@@ -3101,21 +3101,25 @@ class SeatingPlan {
 
                     tableHTML += `
                         <td>
-                            <div style="display: flex; align-items: center; justify-content: center; gap: 2px;">
-                                <input type="checkbox" 
-                                       class="absence-checkbox"
-                                       ${isAbsent ? 'checked' : ''} 
-                                       data-student-id="${student.id}" 
-                                       data-column="${dateColumn}"
-                                       title="Abwesend">
-                                <input type="checkbox" 
-                                       class="lateness-checkbox"
-                                       ${isLate ? 'checked' : ''} 
-                                       data-student-id="${student.id}" 
-                                       data-column="${dateColumn}"
-                                       title="Zu spät"
-                                       style="transform: scale(0.8);">
-                                <span style="font-size: 10px; margin-right: 2px;" title="Zu spät">🕐</span>
+                            <div style="display: flex; align-items: center; justify-content: center; gap: 3px; flex-wrap: wrap;">
+                                <div style="display: flex; align-items: center; gap: 1px;">
+                                    <span style="font-size: 12px;" title="Abwesend">❌</span>
+                                    <input type="checkbox" 
+                                           class="absence-checkbox"
+                                           ${isAbsent ? 'checked' : ''} 
+                                           data-student-id="${student.id}" 
+                                           data-column="${dateColumn}"
+                                           title="Abwesend">
+                                </div>
+                                <div style="display: flex; align-items: center; gap: 1px;">
+                                    <span style="font-size: 12px;" title="Zu spät">🕐</span>
+                                    <input type="checkbox" 
+                                           class="lateness-checkbox"
+                                           ${isLate ? 'checked' : ''} 
+                                           data-student-id="${student.id}" 
+                                           data-column="${dateColumn}"
+                                           title="Zu spät">
+                                </div>
                                 <input type="text" class="grade-input ${gradeClass}${isAbsent ? ' absent' : ''}${isLate ? ' late' : ''}" 
                                        value="${isAbsent ? '' : (grade ? grade.toString().replace('.', ',') : '')}" 
                                        data-student-id="${student.id}" 
