@@ -768,6 +768,11 @@ class SeatingPlan {
         // Force complete re-render to ensure visual updates
         this.renderDesks();
         this.renderStudentPool();
+        
+        // Only update grade table if it's currently visible (don't force open the modal)
+        if (document.getElementById('gradeTableContainer').style.display === 'block') {
+            this.showExtendedGradeTable();
+        }
     }
 
     updateStudentLatenessVisuals(studentId) {
@@ -898,10 +903,15 @@ class SeatingPlan {
                 this.saveClasses();
             }
             
-            // Automatically select the first available class after loading
+            // Automatically select the saved current class or first available class after loading
             if (this.classes.size > 0) {
-                const firstClassId = this.classes.keys().next().value;
-                this.switchClass(firstClassId);
+                const savedCurrentClassId = localStorage.getItem('seatingPlan_currentClassId');
+                if (savedCurrentClassId && this.classes.has(savedCurrentClassId)) {
+                    this.switchClass(savedCurrentClassId);
+                } else {
+                    const firstClassId = this.classes.keys().next().value;
+                    this.switchClass(firstClassId);
+                }
             }
         } else {
             // No saved classes found, create a default class
@@ -1072,6 +1082,12 @@ class SeatingPlan {
 
         // Load new class
         this.currentClassId = classId;
+        
+        // Immediately persist the class selection
+        if (this.currentClassId) {
+            localStorage.setItem('seatingPlan_currentClassId', this.currentClassId);
+        }
+        
         const classData = this.classes.get(classId);
 
         this.students = classData.students || [];
@@ -1377,6 +1393,11 @@ class SeatingPlan {
             deskAssignments: Array.from(classData.deskAssignments.entries())
         }));
         localStorage.setItem('seatingPlan_classes', JSON.stringify(classesData));
+        
+        // Save current class ID for persistence after reload
+        if (this.currentClassId) {
+            localStorage.setItem('seatingPlan_currentClassId', this.currentClassId);
+        }
     }
 
     // Periodenverwaltung Methods
