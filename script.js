@@ -1,6 +1,6 @@
 class SeatingPlan {
     constructor() {
-        this.version = "2.1.0"; // Application version - update this when making changes
+        this.version = "0.5 (Beta)"; // Application version - update this when making changes
         this.classes = new Map(); // Store all classes and their data
         this.currentClassId = null;
         this.students = [];
