@@ -1796,12 +1796,14 @@ class SeatingPlan {
         // Add lateness visual indicator
         const latenessLevel = this.getCurrentLatenessLevel(student.id);
         if (latenessLevel > 0) {
-            // Normalize lateness level for CSS classes (5, 10, 15+)
-            let cssLatenessLevel = latenessLevel;
-            if (latenessLevel >= 15) {
-                cssLatenessLevel = 15;
-            }
-            card.className += ` lateness-${cssLatenessLevel}`;
+            // Apply lateness background color class
+            card.className += ` lateness-${latenessLevel}`;
+            
+            // Add minutes indicator text
+            const latenessIndicator = document.createElement('div');
+            latenessIndicator.className = 'student-lateness-indicator';
+            latenessIndicator.textContent = `${latenessLevel}min`;
+            card.appendChild(latenessIndicator);
         }
         
         card.draggable = true;

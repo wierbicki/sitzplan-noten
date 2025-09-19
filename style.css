@@ -979,7 +979,7 @@ body {
 
 /* Combined attendance/lateness select dropdown styling */
 .attendance-select {
-    width: 80px;
+    width: 85px;
     height: 24px;
     font-size: 11px;
     padding: 2px 4px;
@@ -1007,9 +1007,11 @@ body {
 /* Lateness Modal Styles */
 .lateness-options {
     display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 15px;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
     margin: 20px 0;
+    max-height: 400px;
+    overflow-y: auto;
 }
 
 .lateness-btn {
@@ -1065,6 +1067,51 @@ body {
 .student-card.lateness-15 {
     background: rgba(255, 69, 0, 0.15);
     border: 1px solid rgba(255, 69, 0, 0.4);
+}
+
+.student-card.lateness-20 {
+    background: rgba(255, 87, 34, 0.16);
+    border: 1px solid rgba(255, 87, 34, 0.42);
+}
+
+.student-card.lateness-25 {
+    background: rgba(244, 67, 54, 0.17);
+    border: 1px solid rgba(244, 67, 54, 0.44);
+}
+
+.student-card.lateness-30 {
+    background: rgba(233, 30, 99, 0.18);
+    border: 1px solid rgba(233, 30, 99, 0.46);
+}
+
+.student-card.lateness-35 {
+    background: rgba(216, 27, 96, 0.19);
+    border: 1px solid rgba(216, 27, 96, 0.48);
+}
+
+.student-card.lateness-40 {
+    background: rgba(194, 24, 91, 0.20);
+    border: 1px solid rgba(194, 24, 91, 0.50);
+}
+
+.student-card.lateness-45 {
+    background: rgba(173, 20, 87, 0.21);
+    border: 1px solid rgba(173, 20, 87, 0.52);
+}
+
+/* Lateness indicator text on student cards */
+.student-lateness-indicator {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    background: rgba(255, 255, 255, 0.9);
+    color: #333;
+    font-size: 8px;
+    font-weight: bold;
+    padding: 1px 3px;
+    border-radius: 3px;
+    line-height: 1;
+    z-index: 10;
 }
 
 .floating-header-toggle {
