@@ -738,11 +738,6 @@ class SeatingPlan {
                 this.switchClass(firstClassId);
             }
         }
-
-        // If no classes exist, create a default one
-        if (this.classes.size === 0) {
-            this.createDefaultClass();
-        }
     }
 
     migrateGermanGradesToNumeric() {
