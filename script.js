@@ -816,6 +816,24 @@ class SeatingPlan {
         return count;
     }
 
+    countStudentAbsences(studentId) {
+        // Count the total number of times a student was absent
+        const studentAbsences = this.absenceTable.get(studentId);
+        if (!studentAbsences) {
+            return 0;
+        }
+        
+        // Count entries where absence is true
+        let count = 0;
+        studentAbsences.forEach(isAbsent => {
+            if (isAbsent === true) {
+                count++;
+            }
+        });
+        
+        return count;
+    }
+
     loadClasses() {
         const savedClasses = localStorage.getItem('seatingPlan_classes');
         if (savedClasses) {
@@ -3065,7 +3083,8 @@ class SeatingPlan {
                 absences: studentAbsences,
                 lateness: studentLateness,
                 average: average,
-                latenessCount: this.countStudentLateness(student.id)
+                latenessCount: this.countStudentLateness(student.id),
+                absenceCount: this.countStudentAbsences(student.id)
             });
         });
 
@@ -3092,6 +3111,9 @@ class SeatingPlan {
                         </th>
                         <th rowspan="2" onclick="window.seatingPlan.sortTable('latenessCount')" style="cursor: pointer;">
                             Verspätungen ${this.getSortIndicator('latenessCount')}
+                        </th>
+                        <th rowspan="2" onclick="window.seatingPlan.sortTable('absenceCount')" style="cursor: pointer;">
+                            Abwesenheiten ${this.getSortIndicator('absenceCount')}
                         </th>
         `;
 
@@ -3148,6 +3170,7 @@ class SeatingPlan {
                     <td>${student.firstName}</td>
                     <td><strong>${student.average}</strong></td>
                     <td><strong>${student.latenessCount}</strong></td>
+                    <td><strong>${student.absenceCount}</strong></td>
             `;
 
             // Add grade cells grouped by periods
@@ -3425,6 +3448,17 @@ class SeatingPlan {
                     break;
                 case 'latenessCount':
                     compareResult = a.latenessCount - b.latenessCount;
+                    
+                    // Tiebreaker: lastName then firstName
+                    if (compareResult === 0) {
+                        compareResult = a.lastName.localeCompare(b.lastName, 'de');
+                        if (compareResult === 0) {
+                            compareResult = a.firstName.localeCompare(b.firstName, 'de');
+                        }
+                    }
+                    break;
+                case 'absenceCount':
+                    compareResult = a.absenceCount - b.absenceCount;
                     
                     // Tiebreaker: lastName then firstName
                     if (compareResult === 0) {
