@@ -3010,9 +3010,14 @@ class SeatingPlan {
         // Create new event handler for combined attendance/lateness control
         const handler = (e) => {
             if (e.target.classList.contains('attendance-select')) {
-                const studentId = e.target.dataset.studentId;
+                const studentId = parseFloat(e.target.dataset.studentId);
                 const dateColumn = e.target.dataset.column;
                 const value = e.target.value;
+                
+                // Guard against invalid student ID
+                if (isNaN(studentId) || !dateColumn) {
+                    return;
+                }
                 
                 // Parse the selected value
                 if (value === 'absent') {
