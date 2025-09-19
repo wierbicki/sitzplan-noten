@@ -761,6 +761,26 @@ class SeatingPlan {
         this.renderStudentPool(); // Update student pool as well
     }
 
+    setLateness(studentId, dateColumn, latenessLevel) {
+        // Initialize lateness table if not exists
+        if (!this.latenessTable.has(studentId)) {
+            this.latenessTable.set(studentId, new Map());
+        }
+        
+        const studentLateness = this.latenessTable.get(studentId);
+        
+        // Update or remove lateness level for specific date
+        if (latenessLevel === 0) {
+            studentLateness.delete(dateColumn);
+        } else {
+            studentLateness.set(dateColumn, latenessLevel);
+        }
+        
+        // Save state and refresh table
+        this.saveCurrentClassState();
+        this.showExtendedGradeTable();
+    }
+
     getCurrentLatenessLevel(studentId) {
         // Get the most recent lateness level for visual display
         const studentLateness = this.latenessTable.get(studentId);
@@ -2958,31 +2978,34 @@ class SeatingPlan {
             container.removeEventListener('change', existingHandler);
         }
         
-        // Create new event handler for both absence and lateness checkboxes
+        // Create new event handler for both absence and lateness controls
         const handler = (e) => {
             if (e.target.classList.contains('absence-checkbox')) {
                 this.toggleAbsence(e.target);
                 
-                // If marking as absent, disable lateness checkbox and remove any lateness
+                // If marking as absent, disable lateness select and clear any lateness
                 const row = e.target.closest('tr');
-                const latenessCheckbox = row.querySelector('.lateness-checkbox[data-student-id="' + e.target.dataset.studentId + '"][data-column="' + e.target.dataset.column + '"]');
+                const latenessSelect = row.querySelector('.lateness-select[data-student-id="' + e.target.dataset.studentId + '"][data-column="' + e.target.dataset.column + '"]');
                 
                 if (e.target.checked) {
-                    // Student is now absent - disable lateness and remove any lateness entry
-                    if (latenessCheckbox) {
-                        latenessCheckbox.disabled = true;
-                        latenessCheckbox.checked = false;
+                    // Student is now absent - disable lateness select and clear lateness
+                    if (latenessSelect) {
+                        latenessSelect.disabled = true;
+                        latenessSelect.value = '0';
                         // Remove lateness entry from data
-                        this.toggleLateness(latenessCheckbox);
+                        this.setLateness(e.target.dataset.studentId, e.target.dataset.column, 0);
                     }
                 } else {
-                    // Student is no longer absent - enable lateness checkbox
-                    if (latenessCheckbox) {
-                        latenessCheckbox.disabled = false;
+                    // Student is no longer absent - enable lateness select
+                    if (latenessSelect) {
+                        latenessSelect.disabled = false;
                     }
                 }
-            } else if (e.target.classList.contains('lateness-checkbox')) {
-                this.toggleLateness(e.target);
+            } else if (e.target.classList.contains('lateness-select')) {
+                const studentId = e.target.dataset.studentId;
+                const dateColumn = e.target.dataset.column;
+                const latenessLevel = parseInt(e.target.value, 10);
+                this.setLateness(studentId, dateColumn, latenessLevel);
             }
         };
         
@@ -3161,13 +3184,16 @@ class SeatingPlan {
                                 </div>
                                 <div style="display: flex; align-items: center; gap: 1px;">
                                     <span style="font-size: 12px; color: #ffa500;" title="Verspätung">🕐</span>
-                                    <input type="checkbox" 
-                                           class="lateness-checkbox"
-                                           ${isLate ? 'checked' : ''} 
-                                           ${isAbsent ? 'disabled' : ''}
-                                           data-student-id="${student.id}" 
-                                           data-column="${dateColumn}"
-                                           title="Zu spät">
+                                    <select class="lateness-select"
+                                            ${isAbsent ? 'disabled' : ''}
+                                            data-student-id="${student.id}" 
+                                            data-column="${dateColumn}"
+                                            title="Verspätung auswählen">
+                                        <option value="0" ${latenessLevel === 0 ? 'selected' : ''}>—</option>
+                                        <option value="5" ${latenessLevel === 5 ? 'selected' : ''}>5</option>
+                                        <option value="10" ${latenessLevel === 10 ? 'selected' : ''}>10</option>
+                                        <option value="15" ${latenessLevel >= 15 ? 'selected' : ''}>15+</option>
+                                    </select>
                                 </div>
                                 <input type="text" class="grade-input ${gradeClass}${isAbsent ? ' absent' : ''}${isLate ? ' late' : ''}" 
                                        value="${isAbsent ? '' : (grade ? grade.toString().replace('.', ',') : '')}" 
