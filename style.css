@@ -1004,13 +1004,13 @@ body {
     background-color: rgba(255, 165, 0, 0.1);
 }
 
-/* Lateness Modal Styles */
+/* Lateness Modal Styles - weniger überfüllt */
 .lateness-options {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 10px;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
     margin: 20px 0;
-    max-height: 400px;
+    max-height: 450px;
     overflow-y: auto;
 }
 
@@ -1053,50 +1053,50 @@ body {
     font-size: 18px;
 }
 
-/* Student card lateness indicators - dezente Hintergrundfarben */
+/* Student card lateness indicators - ohne Transparenz für bessere Sichtbarkeit */
 .student-card.lateness-5 {
-    background: rgba(255, 204, 0, 0.1);
-    border: 1px solid rgba(255, 204, 0, 0.3);
+    background: #fff3cd;
+    border: 2px solid #ffc107;
 }
 
 .student-card.lateness-10 {
-    background: rgba(255, 140, 0, 0.12);
-    border: 1px solid rgba(255, 140, 0, 0.35);
+    background: #ffe0b3;
+    border: 2px solid #ff9500;
 }
 
 .student-card.lateness-15 {
-    background: rgba(255, 69, 0, 0.15);
-    border: 1px solid rgba(255, 69, 0, 0.4);
+    background: #ffd4b3;
+    border: 2px solid #ff6b35;
 }
 
 .student-card.lateness-20 {
-    background: rgba(255, 87, 34, 0.16);
-    border: 1px solid rgba(255, 87, 34, 0.42);
+    background: #ffccb3;
+    border: 2px solid #ff5722;
 }
 
 .student-card.lateness-25 {
-    background: rgba(244, 67, 54, 0.17);
-    border: 1px solid rgba(244, 67, 54, 0.44);
+    background: #ffbdad;
+    border: 2px solid #f44336;
 }
 
 .student-card.lateness-30 {
-    background: rgba(233, 30, 99, 0.18);
-    border: 1px solid rgba(233, 30, 99, 0.46);
+    background: #ffb3ba;
+    border: 2px solid #e91e63;
 }
 
 .student-card.lateness-35 {
-    background: rgba(216, 27, 96, 0.19);
-    border: 1px solid rgba(216, 27, 96, 0.48);
+    background: #ffa8b8;
+    border: 2px solid #d81b60;
 }
 
 .student-card.lateness-40 {
-    background: rgba(194, 24, 91, 0.20);
-    border: 1px solid rgba(194, 24, 91, 0.50);
+    background: #ff9fb5;
+    border: 2px solid #c2185b;
 }
 
 .student-card.lateness-45 {
-    background: rgba(173, 20, 87, 0.21);
-    border: 1px solid rgba(173, 20, 87, 0.52);
+    background: #ff94b3;
+    border: 2px solid #ad1457;
 }
 
 /* Lateness indicator text on student cards */

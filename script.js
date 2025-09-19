@@ -82,6 +82,7 @@ class SeatingPlan {
 
     renderDesks() {
         const classroom = document.getElementById('classroomGrid');
+        classroom.innerHTML = ''; // Clear existing desks before re-rendering
         
         this.desks.forEach(desk => {
             const deskElement = this.createDeskElement(desk);
