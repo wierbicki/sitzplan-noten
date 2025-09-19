@@ -762,11 +762,12 @@ class SeatingPlan {
             studentLateness.set(today, latenessLevel);
         }
         
-        // Immediately update specific student's visual indicators
-        this.updateStudentLatenessVisuals(studentId);
-        
-        // Save state and update UI
+        // Save state first, then update UI
         this.saveCurrentClassState();
+        
+        // Force complete re-render to ensure visual updates
+        this.renderDesks();
+        this.renderStudentPool();
     }
 
     updateStudentLatenessVisuals(studentId) {
