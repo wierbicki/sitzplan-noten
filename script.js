@@ -2996,34 +2996,28 @@ class SeatingPlan {
             container.removeEventListener('change', existingHandler);
         }
         
-        // Create new event handler for both absence and lateness controls
+        // Create new event handler for combined attendance/lateness control
         const handler = (e) => {
-            if (e.target.classList.contains('absence-checkbox')) {
-                this.toggleAbsence(e.target);
-                
-                // If marking as absent, disable lateness select and clear any lateness
-                const row = e.target.closest('tr');
-                const latenessSelect = row.querySelector('.lateness-select[data-student-id="' + e.target.dataset.studentId + '"][data-column="' + e.target.dataset.column + '"]');
-                
-                if (e.target.checked) {
-                    // Student is now absent - disable lateness select and clear lateness
-                    if (latenessSelect) {
-                        latenessSelect.disabled = true;
-                        latenessSelect.value = '0';
-                        // Remove lateness entry from data
-                        this.setLateness(e.target.dataset.studentId, e.target.dataset.column, 0);
-                    }
-                } else {
-                    // Student is no longer absent - enable lateness select
-                    if (latenessSelect) {
-                        latenessSelect.disabled = false;
-                    }
-                }
-            } else if (e.target.classList.contains('lateness-select')) {
+            if (e.target.classList.contains('attendance-select')) {
                 const studentId = e.target.dataset.studentId;
                 const dateColumn = e.target.dataset.column;
-                const latenessLevel = parseInt(e.target.value, 10);
-                this.setLateness(studentId, dateColumn, latenessLevel);
+                const value = e.target.value;
+                
+                // Parse the selected value
+                if (value === 'absent') {
+                    // Mark as absent and clear any lateness
+                    this.setAbsence(studentId, dateColumn, true);
+                    this.setLateness(studentId, dateColumn, 0);
+                } else if (value === 'present') {
+                    // Mark as present and clear lateness
+                    this.setAbsence(studentId, dateColumn, false);
+                    this.setLateness(studentId, dateColumn, 0);
+                } else if (value.startsWith('late_')) {
+                    // Mark as present but late
+                    this.setAbsence(studentId, dateColumn, false);
+                    const latenessLevel = parseInt(value.split('_')[1], 10);
+                    this.setLateness(studentId, dateColumn, latenessLevel);
+                }
             }
         };
         
@@ -3193,31 +3187,27 @@ class SeatingPlan {
                         else gradeClass = 'grade-6';
                     }
 
+                    // Determine combined attendance/lateness status
+                    let attendanceStatus = 'present';
+                    if (isAbsent) {
+                        attendanceStatus = 'absent';
+                    } else if (latenessLevel > 0) {
+                        attendanceStatus = `late_${latenessLevel}`;
+                    }
+
                     tableHTML += `
                         <td>
-                            <div style="display: flex; align-items: center; justify-content: center; gap: 4px;">
-                                <div style="display: flex; align-items: center; gap: 1px;">
-                                    <span style="font-size: 12px; color: #ff453a;" title="Abwesenheit">🚫</span>
-                                    <input type="checkbox" 
-                                           class="absence-checkbox"
-                                           ${isAbsent ? 'checked' : ''} 
-                                           data-student-id="${student.id}" 
-                                           data-column="${dateColumn}"
-                                           title="Abwesend">
-                                </div>
-                                <div style="display: flex; align-items: center; gap: 1px;">
-                                    <span style="font-size: 12px; color: #ffa500;" title="Verspätung">🕐</span>
-                                    <select class="lateness-select"
-                                            ${isAbsent ? 'disabled' : ''}
-                                            data-student-id="${student.id}" 
-                                            data-column="${dateColumn}"
-                                            title="Verspätung auswählen">
-                                        <option value="0" ${latenessLevel === 0 ? 'selected' : ''}>—</option>
-                                        <option value="5" ${latenessLevel === 5 ? 'selected' : ''}>5</option>
-                                        <option value="10" ${latenessLevel === 10 ? 'selected' : ''}>10</option>
-                                        <option value="15" ${latenessLevel >= 15 ? 'selected' : ''}>15+</option>
-                                    </select>
-                                </div>
+                            <div style="display: flex; align-items: center; justify-content: center; gap: 6px;">
+                                <select class="attendance-select"
+                                        data-student-id="${student.id}" 
+                                        data-column="${dateColumn}"
+                                        title="Anwesenheit/Verspätung">
+                                    <option value="present" ${attendanceStatus === 'present' ? 'selected' : ''}>—</option>
+                                    <option value="absent" ${attendanceStatus === 'absent' ? 'selected' : ''}>🚫 Abw</option>
+                                    <option value="late_5" ${attendanceStatus === 'late_5' ? 'selected' : ''}>🕐 5min</option>
+                                    <option value="late_10" ${attendanceStatus === 'late_10' ? 'selected' : ''}>🕐 10min</option>
+                                    <option value="late_15" ${attendanceStatus === 'late_15' ? 'selected' : ''}>🕐 15+min</option>
+                                </select>
                                 <input type="text" class="grade-input ${gradeClass}${isAbsent ? ' absent' : ''}${isLate ? ' late' : ''}" 
                                        value="${isAbsent ? '' : (grade ? grade.toString().replace('.', ',') : '')}" 
                                        data-student-id="${student.id}" 
@@ -3337,6 +3327,48 @@ class SeatingPlan {
             studentLateness.set(column, 5);
         } else {
             studentLateness.delete(column);
+        }
+        
+        this.saveCurrentClassState();
+        this.showExtendedGradeTable();
+    }
+
+    setAbsence(studentId, dateColumn, isAbsent) {
+        // Initialize absence table if not exists
+        if (!this.absenceTable.has(studentId)) {
+            this.absenceTable.set(studentId, new Map());
+        }
+        
+        // Initialize hidden grades table if not exists
+        if (!this.hiddenGrades.has(studentId)) {
+            this.hiddenGrades.set(studentId, new Map());
+        }
+        
+        const studentAbsences = this.absenceTable.get(studentId);
+        const studentHiddenGrades = this.hiddenGrades.get(studentId);
+        
+        if (isAbsent) {
+            studentAbsences.set(dateColumn, true);
+            // Save existing grade before hiding it
+            if (this.gradeTable.has(studentId)) {
+                const studentGrades = this.gradeTable.get(studentId);
+                if (studentGrades.has(dateColumn)) {
+                    const existingGrade = studentGrades.get(dateColumn);
+                    studentHiddenGrades.set(dateColumn, existingGrade);
+                    studentGrades.delete(dateColumn);
+                }
+            }
+        } else {
+            studentAbsences.delete(dateColumn);
+            // Restore hidden grade if it exists
+            if (studentHiddenGrades.has(dateColumn)) {
+                const hiddenGrade = studentHiddenGrades.get(dateColumn);
+                if (!this.gradeTable.has(studentId)) {
+                    this.gradeTable.set(studentId, new Map());
+                }
+                this.gradeTable.get(studentId).set(dateColumn, hiddenGrade);
+                studentHiddenGrades.delete(dateColumn);
+            }
         }
         
         this.saveCurrentClassState();

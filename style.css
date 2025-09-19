@@ -977,47 +977,31 @@ body {
     box-shadow: 0 0 0 1px #ff453a;
 }
 
-/* Red styling for absence checkbox */
-.extended-grade-table input[type="checkbox"][title="Abwesend"] {
-    accent-color: #ff453a;
-}
-
-/* Lateness select dropdown styling */
-.lateness-select {
-    width: 50px;
-    height: 22px;
+/* Combined attendance/lateness select dropdown styling */
+.attendance-select {
+    width: 80px;
+    height: 24px;
     font-size: 11px;
-    padding: 0 2px;
+    padding: 2px 4px;
     border: 1px solid #d1d1d6;
     border-radius: 4px;
     background-color: #ffffff;
     color: #000000;
 }
 
-.lateness-select:disabled {
+.attendance-select:disabled {
     background-color: #f2f2f7;
     color: #8e8e93;
     cursor: not-allowed;
 }
 
-.lateness-select:not([value="0"]) {
-    border-color: #ff453a;
-    background-color: rgba(255, 69, 58, 0.05);
+/* Visual indicators for different attendance statuses */
+.attendance-select option[value="absent"] {
+    background-color: rgba(255, 69, 58, 0.1);
 }
 
-.extended-grade-table input[type="checkbox"][title="Abwesend"]:checked {
-    accent-color: #d70015;
-}
-
-/* Orange styling for lateness checkbox */
-.extended-grade-table input[type="checkbox"][title="Zu spät"] {
-    accent-color: #ffa500;
-    width: 16px;
-    height: 16px;
-}
-
-.extended-grade-table input[type="checkbox"][title="Zu spät"]:checked {
-    accent-color: #ff8c00;
+.attendance-select option[value^="late_"] {
+    background-color: rgba(255, 165, 0, 0.1);
 }
 
 /* Lateness Modal Styles */
