@@ -501,6 +501,12 @@ class SeatingPlan {
             }
         });
 
+        document.getElementById('resetLateness').addEventListener('click', () => {
+            if (confirm('Möchten Sie wirklich alle Verspätungen zurücksetzen? Alle Verspätungsdaten für alle Schüler werden gelöscht.')) {
+                this.resetAllLateness();
+            }
+        });
+
         document.getElementById('resetCounters').addEventListener('click', () => {
             this.resetAllCounters();
         });
@@ -2235,6 +2241,13 @@ class SeatingPlan {
         this.studentCounters.clear(); // Clear counters as well
         this.renderStudentPool();
         this.saveCurrentClassState();
+    }
+
+    resetAllLateness() {
+        this.latenessTable.clear(); // Clear all lateness data
+        this.renderDesks(); // Update desk display to remove lateness indicators
+        this.renderStudentPool(); // Update student pool to remove lateness indicators
+        this.saveCurrentClassState(); // Save the changes
     }
 
     resetAllCounters() {
