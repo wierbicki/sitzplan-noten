@@ -562,29 +562,38 @@ body {
 }
 
 .student-card-actions {
-    position: fixed;
-    top: -8px;
-    right: 4px;
+    position: absolute;
+    top: -40px;
+    right: 50%;
+    transform: translateX(50%);
     display: none;
-    gap: 4px;
+    gap: 6px;
     z-index: 999999;
     pointer-events: auto;
     padding: 8px;
-    margin: -8px;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    white-space: nowrap;
 }
 
 .seat .student-card-actions,
 .desk .student-card-actions {
-    top: -32px;
-    padding: 4px;
-    margin: -4px;
-    z-index: 999999;
-    border-radius: 6px;
+    top: -45px;
+    padding: 8px;
+    border-radius: 12px;
     background: rgba(255, 255, 255, 0.95);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    backdrop-filter: blur(10px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+    border: 1px solid rgba(255, 255, 255, 0.3);
 }
 
-/* Remove CSS-based hover, will be handled by JavaScript */
+.student-card:hover .student-card-actions,
+.student-card-actions:hover {
+    display: flex !important;
+}
 
 .btn-edit {
     width: 28px;
