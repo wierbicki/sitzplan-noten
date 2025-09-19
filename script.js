@@ -903,6 +903,9 @@ class SeatingPlan {
                 const firstClassId = this.classes.keys().next().value;
                 this.switchClass(firstClassId);
             }
+        } else {
+            // No saved classes found, create a default class
+            this.createDefaultClass();
         }
     }
 
