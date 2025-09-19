@@ -762,10 +762,33 @@ class SeatingPlan {
             studentLateness.set(today, latenessLevel);
         }
         
+        // Immediately update specific student's visual indicators
+        this.updateStudentLatenessVisuals(studentId);
+        
         // Save state and update UI
         this.saveCurrentClassState();
-        this.renderDesks(); // Re-render to show visual changes
-        this.renderStudentPool(); // Update student pool as well
+    }
+
+    updateStudentLatenessVisuals(studentId) {
+        // Find the student data
+        const student = this.students.find(s => s.id === studentId);
+        if (!student) return;
+
+        // Get current lateness level
+        const latenessLevel = this.getCurrentLatenessLevel(studentId);
+
+        // Update student card in desks
+        this.desks.forEach(desk => {
+            if (desk.students.some(s => s.id === studentId)) {
+                this.updateDeskContent(desk, desk.element);
+            }
+        });
+
+        // Update student card in student pool (if the student is unassigned)
+        const isAssigned = this.desks.some(desk => desk.students.some(s => s.id === studentId));
+        if (!isAssigned) {
+            this.renderStudentPool();
+        }
     }
 
     setLateness(studentId, dateColumn, latenessLevel) {
