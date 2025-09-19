@@ -567,7 +567,7 @@ body {
     right: 4px;
     display: none;
     gap: 4px;
-    z-index: 9999;
+    z-index: 999999;
     pointer-events: auto;
     padding: 8px;
     margin: -8px;
@@ -578,7 +578,7 @@ body {
     top: -32px;
     padding: 4px;
     margin: -4px;
-    z-index: 9999;
+    z-index: 999999;
     border-radius: 6px;
     background: rgba(255, 255, 255, 0.95);
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
