@@ -3222,7 +3222,13 @@ class SeatingPlan {
                                     <option value="absent" ${attendanceStatus === 'absent' ? 'selected' : ''}>🚫 Abw</option>
                                     <option value="late_5" ${attendanceStatus === 'late_5' ? 'selected' : ''}>🕐 5min</option>
                                     <option value="late_10" ${attendanceStatus === 'late_10' ? 'selected' : ''}>🕐 10min</option>
-                                    <option value="late_15" ${attendanceStatus === 'late_15' ? 'selected' : ''}>🕐 15+min</option>
+                                    <option value="late_15" ${attendanceStatus === 'late_15' ? 'selected' : ''}>🕐 15min</option>
+                                    <option value="late_20" ${attendanceStatus === 'late_20' ? 'selected' : ''}>🕐 20min</option>
+                                    <option value="late_25" ${attendanceStatus === 'late_25' ? 'selected' : ''}>🕐 25min</option>
+                                    <option value="late_30" ${attendanceStatus === 'late_30' ? 'selected' : ''}>🕐 30min</option>
+                                    <option value="late_35" ${attendanceStatus === 'late_35' ? 'selected' : ''}>🕐 35min</option>
+                                    <option value="late_40" ${attendanceStatus === 'late_40' ? 'selected' : ''}>🕐 40min</option>
+                                    <option value="late_45" ${attendanceStatus === 'late_45' ? 'selected' : ''}>🕐 45min</option>
                                 </select>
                                 <input type="text" class="grade-input ${gradeClass}${isAbsent ? ' absent' : ''}${isLate ? ' late' : ''}" 
                                        value="${isAbsent ? '' : (grade ? grade.toString().replace('.', ',') : '')}" 
