@@ -778,6 +778,24 @@ class SeatingPlan {
         return sortedEntries.length > 0 ? sortedEntries[0][1] : 0;
     }
 
+    countStudentLateness(studentId) {
+        // Count the total number of times a student was late (regardless of minutes)
+        const studentLateness = this.latenessTable.get(studentId);
+        if (!studentLateness) {
+            return 0;
+        }
+        
+        // Count entries where lateness level > 0
+        let count = 0;
+        studentLateness.forEach(latenessLevel => {
+            if (latenessLevel > 0) {
+                count++;
+            }
+        });
+        
+        return count;
+    }
+
     loadClasses() {
         const savedClasses = localStorage.getItem('seatingPlan_classes');
         if (savedClasses) {
@@ -2998,7 +3016,8 @@ class SeatingPlan {
                 grades: studentGrades,
                 absences: studentAbsences,
                 lateness: studentLateness,
-                average: average
+                average: average,
+                latenessCount: this.countStudentLateness(student.id)
             });
         });
 
@@ -3022,6 +3041,9 @@ class SeatingPlan {
                         </th>
                         <th rowspan="2" onclick="window.seatingPlan.sortTable('average')" style="cursor: pointer;">
                             Durchschnitt ${this.getSortIndicator('average')}
+                        </th>
+                        <th rowspan="2" onclick="window.seatingPlan.sortTable('latenessCount')" style="cursor: pointer;">
+                            Verspätungen ${this.getSortIndicator('latenessCount')}
                         </th>
         `;
 
@@ -3077,6 +3099,7 @@ class SeatingPlan {
                     <td>${student.lastName}</td>
                     <td>${student.firstName}</td>
                     <td><strong>${student.average}</strong></td>
+                    <td><strong>${student.latenessCount}</strong></td>
             `;
 
             // Add grade cells grouped by periods
@@ -3336,6 +3359,17 @@ class SeatingPlan {
                     const avgA = parseFloat(a.average.replace(',', '.'));
                     const avgB = parseFloat(b.average.replace(',', '.'));
                     compareResult = avgA - avgB;
+                    
+                    // Tiebreaker: lastName then firstName
+                    if (compareResult === 0) {
+                        compareResult = a.lastName.localeCompare(b.lastName, 'de');
+                        if (compareResult === 0) {
+                            compareResult = a.firstName.localeCompare(b.firstName, 'de');
+                        }
+                    }
+                    break;
+                case 'latenessCount':
+                    compareResult = a.latenessCount - b.latenessCount;
                     
                     // Tiebreaker: lastName then firstName
                     if (compareResult === 0) {
@@ -3708,7 +3742,7 @@ class SeatingPlan {
         studentsWithGrades.sort((a, b) => a.lastName.localeCompare(b.lastName, 'de'));
 
         // Calculate column headers
-        const headers = ['Nachname', 'Vorname', 'Durchschnitt'];
+        const headers = ['Nachname', 'Vorname', 'Durchschnitt', 'Verspätungen'];
         periodGroups.forEach(group => {
             group.columns.forEach(dateColumn => {
                 headers.push(dateColumn);
@@ -3754,12 +3788,14 @@ class SeatingPlan {
 
             let dataX = 20;
             
-            // Student name and average
+            // Student name, average and lateness count
             doc.text(student.lastName, dataX, yPosition);
             dataX += columnWidth;
             doc.text(student.firstName, dataX, yPosition);
             dataX += columnWidth;
             doc.text(student.average, dataX, yPosition);
+            dataX += columnWidth;
+            doc.text(student.latenessCount ? student.latenessCount.toString() : '0', dataX, yPosition);
             dataX += columnWidth;
 
             // Grades for each period group
@@ -3854,8 +3890,8 @@ class SeatingPlan {
         const excelData = [];
         
         // Create header rows - we need two rows for period grouping
-        const periodHeaderRow = ['', '', '']; // Empty cells for name and average columns
-        const dateHeaderRow = ['Nachname', 'Vorname', 'Durchschnitt'];
+        const periodHeaderRow = ['', '', '', '']; // Empty cells for name, average and lateness columns  
+        const dateHeaderRow = ['Nachname', 'Vorname', 'Durchschnitt', 'Verspätungen'];
         
         periodGroups.forEach(group => {
             if (group.columns.length > 1) {
@@ -3895,6 +3931,9 @@ class SeatingPlan {
             // Convert average with comma for German locale
             const averageWithComma = student.average ? student.average.replace('.', ',') : '';
             row.push(averageWithComma);
+            
+            // Add lateness count
+            row.push(student.latenessCount.toString());
 
             // Add grades for each period group
             periodGroups.forEach(group => {
@@ -3939,6 +3978,7 @@ class SeatingPlan {
             { width: 20 }, // Nachname
             { width: 20 }, // Vorname
             { width: 12 }, // Durchschnitt
+            { width: 12 }, // Verspätungen
         ];
         
         // Add widths for remaining columns
@@ -3967,7 +4007,7 @@ class SeatingPlan {
         // Add cell merges for period headers if we have multi-day periods
         if (hasMultiDayPeriods) {
             const merges = [];
-            let currentCol = 3; // Start after Nachname, Vorname, Durchschnitt
+            let currentCol = 4; // Start after Nachname, Vorname, Durchschnitt, Verspätungen
             
             periodGroups.forEach(group => {
                 if (group.columns.length > 1) {
