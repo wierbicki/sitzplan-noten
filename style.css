@@ -973,8 +973,8 @@ body {
 }
 
 .grade-input.late {
-    border: 3px solid #ff9500 !important;
-    box-shadow: 0 0 0 1px #ff9500;
+    border: 3px solid #ff453a !important;
+    box-shadow: 0 0 0 1px #ff453a;
 }
 
 /* Red styling for absence checkbox */

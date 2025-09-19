@@ -2962,6 +2962,25 @@ class SeatingPlan {
         const handler = (e) => {
             if (e.target.classList.contains('absence-checkbox')) {
                 this.toggleAbsence(e.target);
+                
+                // If marking as absent, disable lateness checkbox and remove any lateness
+                const row = e.target.closest('tr');
+                const latenessCheckbox = row.querySelector('.lateness-checkbox[data-student-id="' + e.target.dataset.studentId + '"][data-column="' + e.target.dataset.column + '"]');
+                
+                if (e.target.checked) {
+                    // Student is now absent - disable lateness and remove any lateness entry
+                    if (latenessCheckbox) {
+                        latenessCheckbox.disabled = true;
+                        latenessCheckbox.checked = false;
+                        // Remove lateness entry from data
+                        this.toggleLateness(latenessCheckbox);
+                    }
+                } else {
+                    // Student is no longer absent - enable lateness checkbox
+                    if (latenessCheckbox) {
+                        latenessCheckbox.disabled = false;
+                    }
+                }
             } else if (e.target.classList.contains('lateness-checkbox')) {
                 this.toggleLateness(e.target);
             }
@@ -3145,6 +3164,7 @@ class SeatingPlan {
                                     <input type="checkbox" 
                                            class="lateness-checkbox"
                                            ${isLate ? 'checked' : ''} 
+                                           ${isAbsent ? 'disabled' : ''}
                                            data-student-id="${student.id}" 
                                            data-column="${dateColumn}"
                                            title="Zu spät">
