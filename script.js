@@ -782,13 +782,19 @@ class SeatingPlan {
     }
 
     getCurrentLatenessLevel(studentId) {
-        // Get the most recent lateness level for visual display
+        // Get today's lateness level for visual display on student cards
         const studentLateness = this.latenessTable.get(studentId);
         if (!studentLateness || studentLateness.size === 0) {
             return 0;
         }
         
-        // Get all dates and find the most recent one with a lateness level
+        // First try to get today's lateness
+        const today = new Date().toLocaleDateString('de-DE');
+        if (studentLateness.has(today)) {
+            return studentLateness.get(today);
+        }
+        
+        // If no entry for today, get the most recent lateness level
         const sortedEntries = Array.from(studentLateness.entries()).sort((a, b) => {
             const dateA = new Date(a[0].split('.').reverse().join('-'));
             const dateB = new Date(b[0].split('.').reverse().join('-'));
@@ -1789,8 +1795,13 @@ class SeatingPlan {
         
         // Add lateness visual indicator
         const latenessLevel = this.getCurrentLatenessLevel(student.id);
-        if (latenessLevel) {
-            card.className += ` lateness-${latenessLevel}`;
+        if (latenessLevel > 0) {
+            // Normalize lateness level for CSS classes (5, 10, 15+)
+            let cssLatenessLevel = latenessLevel;
+            if (latenessLevel >= 15) {
+                cssLatenessLevel = 15;
+            }
+            card.className += ` lateness-${cssLatenessLevel}`;
         }
         
         card.draggable = true;
