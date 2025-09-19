@@ -2275,6 +2275,11 @@ class SeatingPlan {
         targetDesk.students.push(student);
         this.updateDeskContent(targetDesk, targetDesk.element);
 
+        // Synchronization: Mark student as present for today when assigned to desk
+        const today = new Date().toLocaleDateString('de-DE');
+        this.setAbsence(parseFloat(student.id), today, false);
+        this.setLateness(parseFloat(student.id), today, 0);
+
         // Update student pool
         this.renderStudentPool();
 
@@ -3535,6 +3540,12 @@ class SeatingPlan {
                     studentHiddenGrades.set(dateColumn, existingGrade);
                     studentGrades.delete(dateColumn);
                 }
+            }
+            
+            // Synchronization: Remove student from desk if marked absent for today
+            const today = new Date().toLocaleDateString('de-DE');
+            if (dateColumn === today) {
+                this.moveStudentToPool(studentId);
             }
         } else {
             studentAbsences.delete(dateColumn);
