@@ -1981,6 +1981,20 @@ class SeatingPlan {
         card.addEventListener('dragstart', this.handleDragStart.bind(this));
         card.addEventListener('dragend', this.handleDragEnd.bind(this));
 
+        // Add hover events for student card actions
+        card.addEventListener('mouseenter', (e) => {
+            this.showStudentActions(card, actions);
+        });
+        card.addEventListener('mouseleave', (e) => {
+            this.hideStudentActions(actions);
+        });
+        actions.addEventListener('mouseenter', (e) => {
+            this.showStudentActions(card, actions);
+        });
+        actions.addEventListener('mouseleave', (e) => {
+            this.hideStudentActions(actions);
+        });
+
         // Make sure drag events work on all child elements
         avatar.addEventListener('dragstart', this.handleDragStart.bind(this));
         avatar.addEventListener('dragend', this.handleDragEnd.bind(this));
@@ -4346,6 +4360,30 @@ class SeatingPlan {
         // Generate filename and download
         const fileName = `Notentabelle_${className.replace(/[^a-zA-Z0-9]/g, '_')}_${new Date().toISOString().split('T')[0]}.xlsx`;
         XLSX.writeFile(wb, fileName);
+    }
+
+    showStudentActions(studentCard, actionsElement) {
+        // Calculate position relative to viewport
+        const cardRect = studentCard.getBoundingClientRect();
+        
+        // Position actions above the card, centered horizontally
+        const actionsWidth = 120; // Approximate width of actions
+        const left = cardRect.left + (cardRect.width / 2) - (actionsWidth / 2);
+        const top = cardRect.top - 40; // Position above the card
+        
+        // Ensure actions don't go outside viewport
+        const maxLeft = window.innerWidth - actionsWidth - 10;
+        const finalLeft = Math.max(10, Math.min(left, maxLeft));
+        const finalTop = Math.max(10, top);
+        
+        // Apply position and show
+        actionsElement.style.left = finalLeft + 'px';
+        actionsElement.style.top = finalTop + 'px';
+        actionsElement.style.display = 'flex';
+    }
+
+    hideStudentActions(actionsElement) {
+        actionsElement.style.display = 'none';
     }
 
     getAverageGradeClass(average) {
