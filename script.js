@@ -2854,28 +2854,94 @@ class SeatingPlan {
                 this.classes.clear();
                 this.currentClassId = null;
 
+                // Helper function for robust entry normalization
+                const toEntries = (data) => {
+                    if (!data) return [];
+                    if (Array.isArray(data)) return data;
+                    if (data instanceof Map) return Array.from(data.entries());
+                    if (typeof data === 'object') return Object.entries(data);
+                    return [];
+                };
+
                 // Import classes
+                console.log('Importiere Klassen:', importData.classes.length);
+                
                 importData.classes.forEach(classData => {
+                    // Migrate legacy seatAssignments to deskAssignments if needed
+                    let deskAssignments = classData.deskAssignments || classData.seatAssignments || [];
+                    if (classData.seatAssignments && !classData.deskAssignments) {
+                        console.log(`Migration: seatAssignments -> deskAssignments für Klasse ${classData.name}`);
+                    }
+
+                    // Properly reconstruct nested Map structures for gradeTable
+                    const gradeTable = [];
+                    if (classData.gradeTable) {
+                        const gradeEntries = toEntries(classData.gradeTable);
+                        gradeEntries.forEach(([studentId, gradesData]) => {
+                            gradeTable.push([studentId, toEntries(gradesData)]);
+                        });
+                    }
+
+                    // Properly reconstruct nested Map structures for absenceTable
+                    const absenceTable = [];
+                    if (classData.absenceTable) {
+                        const absenceEntries = toEntries(classData.absenceTable);
+                        absenceEntries.forEach(([studentId, absenceData]) => {
+                            absenceTable.push([studentId, toEntries(absenceData)]);
+                        });
+                    }
+
+                    // Properly reconstruct nested Map structures for latenessTable
+                    const latenessTable = [];
+                    if (classData.latenessTable) {
+                        const latenessEntries = toEntries(classData.latenessTable);
+                        latenessEntries.forEach(([studentId, latenessData]) => {
+                            latenessTable.push([studentId, toEntries(latenessData)]);
+                        });
+                    }
+
+                    // Properly reconstruct nested Map structures for hiddenGrades
+                    const hiddenGrades = [];
+                    if (classData.hiddenGrades) {
+                        const hiddenEntries = toEntries(classData.hiddenGrades);
+                        hiddenEntries.forEach(([studentId, hiddenData]) => {
+                            hiddenGrades.push([studentId, toEntries(hiddenData)]);
+                        });
+                    }
+
+                    // Properly reconstruct periods Map
+                    const periods = toEntries(classData.periods);
+
                     const importedClass = {
                         id: classData.id,
                         name: classData.name,
                         students: classData.students || [],
-                        studentCounters: new Map(classData.studentCounters || []),
+                        studentCounters: new Map(toEntries(classData.studentCounters)),
                         desks: classData.desks || [],
-                        deskAssignments: new Map(classData.deskAssignments || []),
+                        deskAssignments: new Map(toEntries(deskAssignments)),
                         gridRows: classData.gridRows || 5,
                         gridColumns: classData.gridColumns || 6,
                         showGrades: classData.showGrades || false,
                         startingGrade: classData.startingGrade || 4.0,
-                        gradeTable: classData.gradeTable || [],
-                        absenceTable: classData.absenceTable || [],
-                        latenessTable: classData.latenessTable || [],
-                        hiddenGrades: classData.hiddenGrades || [],
-                        periods: classData.periods || [],
+                        gradeTable: gradeTable,
+                        absenceTable: absenceTable,
+                        latenessTable: latenessTable,
+                        hiddenGrades: hiddenGrades,
+                        periods: periods,
                         activePeriodId: classData.activePeriodId || null,
                         defaultPeriodLength: classData.defaultPeriodLength || 1
                     };
                     this.classes.set(classData.id, importedClass);
+                    
+                    // Integrity check
+                    console.log(`Klasse importiert: ${classData.name}:`, {
+                        schüler: classData.students?.length || 0,
+                        tischzuweisungen: toEntries(deskAssignments).length,
+                        noten: gradeTable.length,
+                        fehlzeiten: absenceTable.length,
+                        verspätungen: latenessTable.length,
+                        perioden: periods.length
+                    });
                 });
 
                 // If no classes were imported, create a default one
@@ -2890,9 +2956,15 @@ class SeatingPlan {
                 // Rebuild desk DOM elements after import
                 this.createClassroom();
 
-                // Update UI
+                // Update UI and save to localStorage
                 this.updateClassSelect();
                 this.saveClasses();
+
+                // Final integrity verification
+                console.log('Import abgeschlossen. Gespeicherte Klassen:', this.classes.size);
+                this.classes.forEach((classData, id) => {
+                    console.log(`Klasse ${classData.name} (${id}): ${classData.students?.length || 0} Schüler, ${classData.desks?.length || 0} Tische`);
+                });
 
                 alert(`Import erfolgreich! ${importData.classes.length} Klasse(n) wurden importiert.`);
 
