@@ -765,11 +765,11 @@ class SeatingPlan {
         // Save state first, then update UI
         this.saveCurrentClassState();
         
-        // Force complete re-render to ensure visual updates
+        // Force complete re-render to ensure seating plan visual updates
         this.renderDesks();
         this.renderStudentPool();
         
-        // Only update grade table if it's currently visible (don't force open the modal)
+        // Always update grade table if it's currently visible to ensure bidirectional sync
         if (document.getElementById('gradeTableContainer').style.display === 'block') {
             this.showExtendedGradeTable();
         }
@@ -812,8 +812,18 @@ class SeatingPlan {
             studentLateness.set(dateColumn, latenessLevel);
         }
         
-        // Save state and refresh table
+        // Save state first
         this.saveCurrentClassState();
+        
+        // Check if this change affects today's date (for seating plan synchronization)
+        const today = new Date().toLocaleDateString('de-DE');
+        if (dateColumn === today) {
+            // Update seating plan visuals since today's lateness changed
+            this.renderDesks();
+            this.renderStudentPool();
+        }
+        
+        // Refresh grade table
         this.showExtendedGradeTable();
     }
 
